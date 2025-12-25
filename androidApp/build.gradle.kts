@@ -189,6 +189,7 @@ dependencies {
     implementation(project(":base-gms"))
     /**  --- Modules ---------------------------------------------------------------------------- */
     implementation(project(":compose"))
+    implementation(project(":gdk")) // For direct GDK access (options_test)
 
     developmentImplementation(project(":gms"))
     productionGoogleImplementation(project(":gms"))

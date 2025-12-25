@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Base64
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +19,7 @@ import com.blockstream.common.database.wallet.LoginCredentials
 import com.blockstream.common.events.Events
 import com.blockstream.common.gdk.Gdk
 import com.blockstream.common.gdk.GreenJson
+import com.blockstream.green_gdk.GDK
 import com.blockstream.common.gdk.data.Network
 import com.blockstream.common.gdk.data.PinData
 import com.blockstream.common.managers.SessionManager
@@ -68,6 +70,16 @@ class GreenActivity : AppCompatActivity() {
                     GreenApp(mainViewModel = mainViewModel, modifier = Modifier.compatTestTagsAsResourceId())
                 }
             }
+        }
+
+        // Test custom GDK fork - call options_test and log result
+        try {
+            val optionsTestResult = GDK.options_test("{}")
+            Log.d("GDK_OPTIONS_TEST", "===========================================")
+            Log.d("GDK_OPTIONS_TEST", "options_test result: $optionsTestResult")
+            Log.d("GDK_OPTIONS_TEST", "===========================================")
+        } catch (e: Exception) {
+            Log.e("GDK_OPTIONS_TEST", "options_test failed", e)
         }
 
         if (appInfo.isDevelopmentOrDebug) {
