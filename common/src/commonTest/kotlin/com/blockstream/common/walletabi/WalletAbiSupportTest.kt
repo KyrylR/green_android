@@ -447,6 +447,34 @@ class WalletAbiSupportTest {
     }
 
     @Test
+    fun walletAbiOutputMatchesKnownWalletScriptReadsNestedScriptCandidates() {
+        val output = externalOutputSchema().copy(
+            lock = buildJsonObject {
+                put("type", "script")
+                put(
+                    "lock",
+                    buildJsonObject {
+                        put("script_pubkey", "0014FEEDFACE1234FEEDFACE1234FEEDFACE1234")
+                    },
+                )
+            },
+        )
+
+        assertTrue(
+            walletAbiOutputMatchesKnownWalletScript(
+                output = output,
+                knownScripts = setOf("0014feedface1234feedface1234feedface1234"),
+            ),
+        )
+        assertFalse(
+            walletAbiOutputMatchesKnownWalletScript(
+                output = output,
+                knownScripts = setOf("0014aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+            ),
+        )
+    }
+
+    @Test
     fun walletAbiTxRequestWithResolvedOutputsPatchesDeferredOutputsAndScripts() {
         val request = txCreateRequest(
             outputs = listOf(
