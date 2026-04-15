@@ -8,6 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import lwk.Transaction
 
 internal fun resolveWalletAbiAssetId(asset: JsonElement): String {
     return asset.jsonObject["asset_id"]?.jsonPrimitive?.content
@@ -31,6 +32,25 @@ internal data class WalletAbiResolvedTransactionOutput(
     val assetId: String?,
     val scriptHex: String?,
 )
+
+internal fun walletAbiResolvedOutputsFromTransactionHex(txHex: String): List<WalletAbiResolvedTransactionOutput> {
+    val transaction = runCatching { Transaction.fromString(txHex) }.getOrNull() ?: return emptyList()
+    val outputs = runCatching { transaction.outputs() }.getOrNull() ?: return emptyList()
+    return outputs.map { output ->
+        WalletAbiResolvedTransactionOutput(
+            assetId = runCatching { output.asset() }
+                .getOrNull()
+                ?.toString()
+                ?.trim()
+                ?.takeIf { it.isNotBlank() },
+            scriptHex = runCatching { output.scriptPubkey().toString() }
+                .getOrNull()
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.lowercase(),
+        )
+    }
+}
 
 internal fun walletAbiTxRequestWithResolvedOutputs(
     txRequest: WalletAbiTxCreateRequest,
