@@ -1,6 +1,10 @@
 package com.blockstream.common.walletabi
 
 import com.blockstream.common.gdk.data.ValidateAddressees
+import com.blockstream.common.walletabi.transport.WalletAbiOutputSchema
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 
@@ -21,5 +25,58 @@ internal fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
         "pointer" in addressee ||
             "subaccount" in addressee ||
             "user_path" in addressee
+    }
+}
+
+internal fun walletAbiOutputMatchesKnownWalletScript(
+    output: WalletAbiOutputSchema,
+    knownScripts: Set<String>,
+): Boolean {
+    return walletAbiOutputScriptCandidates(output).any { it in knownScripts }
+}
+
+private fun walletAbiOutputScriptCandidates(output: WalletAbiOutputSchema): Set<String> {
+    val candidates = linkedSetOf<String>()
+    collectWalletAbiScriptCandidates(
+        element = output.lock,
+        into = candidates,
+    )
+    return candidates
+}
+
+private fun collectWalletAbiScriptCandidates(
+    element: JsonElement,
+    into: MutableSet<String>,
+) {
+    when (element) {
+        is JsonObject -> {
+            element.forEach { (key, value) ->
+                if (key == "script" || key == "script_pubkey" || key == "scriptpubkey") {
+                    (value as? JsonPrimitive)
+                        ?.takeIf { it.isString }
+                        ?.content
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.lowercase()
+                        ?.let(into::add)
+                }
+
+                collectWalletAbiScriptCandidates(
+                    element = value,
+                    into = into,
+                )
+            }
+        }
+
+        is JsonArray -> {
+            element.forEach { value ->
+                collectWalletAbiScriptCandidates(
+                    element = value,
+                    into = into,
+                )
+            }
+        }
+
+        else -> Unit
     }
 }
