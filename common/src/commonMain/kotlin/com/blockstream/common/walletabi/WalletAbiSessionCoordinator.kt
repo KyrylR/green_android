@@ -22,6 +22,8 @@ import kotlinx.serialization.json.put
 
 private const val WALLET_ABI_USER_REJECTED_MESSAGE =
     "WalletConnect Wallet ABI request was rejected by user"
+private const val WALLET_ABI_USER_REJECTED_RPC_CODE = 4001
+private const val WALLET_ABI_UNSUPPORTED_METHOD_RPC_CODE = -32_601
 private const val WALLET_ABI_APPROVAL_POLL_ATTEMPTS = 20
 private const val WALLET_ABI_APPROVAL_POLL_DELAY_MS = 150L
 
@@ -46,6 +48,15 @@ internal sealed interface WalletAbiOverlayLook {
         val origin: String?,
         val network: String?,
         val replacedExistingConnection: Boolean,
+    ) : WalletAbiOverlayLook
+
+    data class GetterApproval(
+        val origin: String,
+        val requestId: String,
+        val method: String,
+        val value: String,
+        val warning: String,
+        val network: String?,
     ) : WalletAbiOverlayLook
 
     data class Error(
@@ -79,6 +90,15 @@ private sealed interface WalletAbiPendingItem {
         val replacedExistingConnection: Boolean,
     ) : WalletAbiPendingItem
 
+    data class GetterApproval(
+        val request: WalletAbiSessionRequest,
+        val permission: WalletAbiGetterPermission,
+        val requestNetwork: WalletAbiNetwork,
+        val resultJson: String,
+        val value: String,
+        val warning: String,
+    ) : WalletAbiPendingItem
+
     data class Error(
         val message: String,
     ) : WalletAbiPendingItem
@@ -92,6 +112,7 @@ private data class WalletAbiRuntimeState(
     var pendingPairingTopic: String? = null,
     var currentItem: WalletAbiPendingItem? = null,
     val queuedItems: ArrayDeque<WalletAbiPendingItem> = ArrayDeque(),
+    val completedRequestKeys: MutableSet<String> = linkedSetOf(),
 )
 
 internal class WalletAbiSessionCoordinator(
@@ -115,7 +136,11 @@ internal class WalletAbiSessionCoordinator(
                     }
                 }
 
-                override fun onSessionRequest(request: WalletAbiSessionRequest) = Unit
+                override fun onSessionRequest(request: WalletAbiSessionRequest) {
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                        routeSessionRequest(request)
+                    }
+                }
 
                 override fun onSessionDelete(topic: String, reason: String) {
                     scope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -199,6 +224,7 @@ internal class WalletAbiSessionCoordinator(
         val runtime = runtime(walletId)
         return when (val item = runtime.currentItem) {
             is WalletAbiPendingItem.SessionProposalApproval -> approveSessionProposal(walletId, item)
+            is WalletAbiPendingItem.GetterApproval -> approveGetter(walletId, item)
             is WalletAbiPendingItem.ConnectionEstablished -> {
                 dismissOverlay(walletId)
                 null
@@ -217,6 +243,7 @@ internal class WalletAbiSessionCoordinator(
         val runtime = runtime(walletId)
         return when (val item = runtime.currentItem) {
             is WalletAbiPendingItem.SessionProposalApproval -> rejectSessionProposal(walletId, item)
+            is WalletAbiPendingItem.GetterApproval -> rejectSessionRequest(walletId, item.request)
             is WalletAbiPendingItem.ConnectionEstablished -> {
                 dismissOverlay(walletId)
                 null
@@ -280,6 +307,7 @@ internal class WalletAbiSessionCoordinator(
             runtime.persistedState = null
             walletSettingsManager.clearWalletAbiSessionState(walletId)
         }
+        runtime.removeItemsForTopic(topic)
         refreshState(walletId)
     }
 
@@ -290,6 +318,14 @@ internal class WalletAbiSessionCoordinator(
             ?: return
 
         handleSessionProposal(walletId, proposal)
+    }
+
+    private suspend fun routeSessionRequest(request: WalletAbiSessionRequest) {
+        val walletId = runtimes.entries.firstOrNull { entry ->
+            entry.value.persistedState?.topic == request.topic || entry.value.activeSession?.topic == request.topic
+        }?.key ?: return
+
+        handleIncomingSessionRequest(walletId, request)
     }
 
     private suspend fun handleSessionProposal(
@@ -332,6 +368,113 @@ internal class WalletAbiSessionCoordinator(
                 origin = proposal.displayOrigin(),
                 warning = proposal.verifyWarning(),
                 willReplaceExistingConnection = runtime.hasActiveConnection(),
+            ),
+        )
+    }
+
+    private suspend fun handleIncomingSessionRequest(
+        walletId: String,
+        request: WalletAbiSessionRequest,
+    ) {
+        val runtime = runtime(walletId)
+        val session = runtime.boundSession ?: return
+        val activeSession = runtime.activeSession
+            ?: walletConnectBridge.getActiveSession(request.topic)
+                ?.takeIf(::isWalletAbiSession)
+            ?: return
+        runtime.activeSession = activeSession
+
+        if (runtime.hasSeenRequest(request.requestKey())) {
+            return
+        }
+
+        val requestNetwork = request.chainId?.toWalletAbiNetworkFromChainId()
+            ?: activeSession.walletAbiNetworkOrNull()
+            ?: throw IllegalStateException("Wallet ABI session request is missing chain information")
+        val origin = request.displayOrigin(runtime.persistedState?.originHint)
+
+        when (request.method) {
+            WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS -> {
+                handleGetterRequest(
+                    walletId = walletId,
+                    session = session,
+                    request = request,
+                    requestNetwork = requestNetwork,
+                    permission = WalletAbiGetterPermission.GET_SIGNER_RECEIVE_ADDRESS,
+                    warning = "Sharing a receive address lets the dApp monitor deposits and correlate wallet activity tied to that address.",
+                )
+            }
+
+            WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY -> {
+                handleGetterRequest(
+                    walletId = walletId,
+                    session = session,
+                    request = request,
+                    requestNetwork = requestNetwork,
+                    permission = WalletAbiGetterPermission.GET_RAW_SIGNING_X_ONLY_PUBKEY,
+                    warning = "This shares a stable wallet-linked identifier. It is not a spending key, but it can still be used for correlation.",
+                )
+            }
+
+            else -> {
+                respondErrorOrExpire(
+                    runtime = runtime,
+                    topic = request.topic,
+                    requestId = request.requestId,
+                    code = WALLET_ABI_UNSUPPORTED_METHOD_RPC_CODE,
+                    message = "Unsupported Wallet ABI method '${request.method}'",
+                )
+                refreshState(walletId)
+            }
+        }
+    }
+
+    private suspend fun handleGetterRequest(
+        walletId: String,
+        session: GdkSession,
+        request: WalletAbiSessionRequest,
+        requestNetwork: WalletAbiNetwork,
+        permission: WalletAbiGetterPermission,
+        warning: String,
+    ) {
+        val runtime = runtime(walletId)
+        val context = executionContextResolver.resolveSessionRequest(
+            incoming = session,
+            requestNetwork = requestNetwork,
+        )
+        val resultJson = walletAbiProviderRunner.runJsonRpcRequest(
+            context = context,
+            requestEnvelopeJson = buildJsonRpcRequestEnvelope(
+                json = json,
+                requestId = request.requestId,
+                method = request.method,
+                paramsJson = request.paramsJson,
+            ),
+        ).resultJson
+
+        if (permission in (runtime.persistedState?.approvedGetters ?: emptySet())) {
+            respondSuccessOrExpire(
+                runtime = runtime,
+                topic = request.topic,
+                requestId = request.requestId,
+                resultJson = resultJson,
+            )
+            return
+        }
+
+        enqueueItem(
+            walletId = walletId,
+            item = WalletAbiPendingItem.GetterApproval(
+                request = request,
+                permission = permission,
+                requestNetwork = requestNetwork,
+                resultJson = resultJson,
+                value = parseGetterValue(
+                    json = json,
+                    permission = permission,
+                    resultJson = resultJson,
+                ),
+                warning = warning,
             ),
         )
     }
@@ -418,6 +561,60 @@ internal class WalletAbiSessionCoordinator(
         return WalletAbiActionOutcome.Success("WalletConnect Wallet ABI session rejected")
     }
 
+    private suspend fun approveGetter(
+        walletId: String,
+        item: WalletAbiPendingItem.GetterApproval,
+    ): WalletAbiActionOutcome {
+        val runtime = runtime(walletId)
+        val requestExpired = respondSuccessOrExpire(
+            runtime = runtime,
+            topic = item.request.topic,
+            requestId = item.request.requestId,
+            resultJson = item.resultJson,
+        )
+
+        val persistedState = runtime.persistedState
+        if (!requestExpired && persistedState != null && persistedState.topic == item.request.topic) {
+            runtime.persistedState = persistedState.copy(
+                approvedGetters = persistedState.approvedGetters + item.permission,
+            ).also { updated ->
+                walletSettingsManager.setWalletAbiSessionState(
+                    walletId = walletId,
+                    stateJson = json.encodeToString(updated),
+                )
+            }
+        }
+
+        runtime.currentItem = runtime.queuedItems.removeFirstOrNull()
+        refreshState(walletId)
+        return if (requestExpired) {
+            WalletAbiActionOutcome.Success("Wallet ABI request expired")
+        } else {
+            WalletAbiActionOutcome.Success("Wallet ABI getter approved")
+        }
+    }
+
+    private suspend fun rejectSessionRequest(
+        walletId: String,
+        request: WalletAbiSessionRequest,
+    ): WalletAbiActionOutcome {
+        val runtime = runtime(walletId)
+        val requestExpired = respondErrorOrExpire(
+            runtime = runtime,
+            topic = request.topic,
+            requestId = request.requestId,
+            code = WALLET_ABI_USER_REJECTED_RPC_CODE,
+            message = WALLET_ABI_USER_REJECTED_MESSAGE,
+        )
+        runtime.currentItem = runtime.queuedItems.removeFirstOrNull()
+        refreshState(walletId)
+        return if (requestExpired) {
+            WalletAbiActionOutcome.Success("Wallet ABI request expired")
+        } else {
+            WalletAbiActionOutcome.Success("Wallet ABI request rejected")
+        }
+    }
+
     internal suspend fun syncRuntimeWithWalletConnect(walletId: String) {
         val runtime = runtime(walletId)
         val walletAbiSessions = walletConnectBridge.getActiveSessions().filter(::isWalletAbiSession)
@@ -492,6 +689,7 @@ internal class WalletAbiSessionCoordinator(
         val resultJson = walletAbiProviderRunner.runJsonRpcRequest(
             context = context,
             requestEnvelopeJson = buildJsonRpcRequestEnvelope(
+                json = json,
                 requestId = 1L,
                 method = WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY,
                 paramsJson = null,
@@ -507,6 +705,54 @@ internal class WalletAbiSessionCoordinator(
             )
 
         return "$chainId:$pubkey"
+    }
+
+    private suspend fun respondSuccessOrExpire(
+        runtime: WalletAbiRuntimeState,
+        topic: String,
+        requestId: Long,
+        resultJson: String,
+    ): Boolean {
+        return try {
+            walletConnectBridge.respondSuccess(
+                topic = topic,
+                requestId = requestId,
+                resultJson = resultJson,
+            )
+            runtime.completedRequestKeys += "$topic:$requestId"
+            false
+        } catch (error: Throwable) {
+            if (!error.isWalletConnectRequestExpired()) {
+                throw error
+            }
+            runtime.completedRequestKeys += "$topic:$requestId"
+            true
+        }
+    }
+
+    private suspend fun respondErrorOrExpire(
+        runtime: WalletAbiRuntimeState,
+        topic: String,
+        requestId: Long,
+        code: Int,
+        message: String,
+    ): Boolean {
+        return try {
+            walletConnectBridge.respondError(
+                topic = topic,
+                requestId = requestId,
+                code = code,
+                message = message,
+            )
+            runtime.completedRequestKeys += "$topic:$requestId"
+            false
+        } catch (error: Throwable) {
+            if (!error.isWalletConnectRequestExpired()) {
+                throw error
+            }
+            runtime.completedRequestKeys += "$topic:$requestId"
+            true
+        }
     }
 
     private suspend fun handleSessionDelete(
@@ -603,6 +849,15 @@ internal class WalletAbiSessionCoordinator(
                     replacedExistingConnection = item.replacedExistingConnection,
                 )
 
+                is WalletAbiPendingItem.GetterApproval -> WalletAbiOverlayLook.GetterApproval(
+                    origin = item.request.displayOrigin(runtime.persistedState?.originHint),
+                    requestId = item.request.requestId.toString(),
+                    method = item.permission.methodName(),
+                    value = item.value,
+                    warning = item.warning,
+                    network = item.requestNetwork.serialValue(),
+                )
+
                 is WalletAbiPendingItem.Error -> WalletAbiOverlayLook.Error(item.message)
                 null -> null
             },
@@ -692,7 +947,55 @@ private fun WalletAbiRuntimeState.hasActiveConnection(): Boolean {
     return visibleConnectionState() == WalletAbiSessionState.CONNECTED
 }
 
+private fun WalletAbiRuntimeState.hasSeenRequest(requestKey: String): Boolean {
+    return requestKey in completedRequestKeys ||
+        currentItem?.requestKey() == requestKey ||
+        queuedItems.any { it.requestKey() == requestKey }
+}
+
+private fun WalletAbiRuntimeState.removeItemsForTopic(topic: String) {
+    if (currentItem?.topic() == topic) {
+        currentItem = null
+    }
+
+    if (queuedItems.isNotEmpty()) {
+        val retained = queuedItems.filterNot { it.topic() == topic }
+        queuedItems.clear()
+        retained.forEach(queuedItems::addLast)
+    }
+
+    if (currentItem == null) {
+        currentItem = queuedItems.removeFirstOrNull()
+    }
+
+    completedRequestKeys.removeAll { requestKey -> requestKey.startsWith("$topic:") }
+}
+
+private fun WalletAbiPendingItem.requestKey(): String? {
+    return when (this) {
+        is WalletAbiPendingItem.GetterApproval -> request.requestKey()
+        else -> null
+    }
+}
+
+private fun WalletAbiPendingItem.topic(): String? {
+    return when (this) {
+        is WalletAbiPendingItem.GetterApproval -> request.topic
+        else -> null
+    }
+}
+
+private fun WalletAbiGetterPermission.methodName(): String {
+    return when (this) {
+        WalletAbiGetterPermission.GET_SIGNER_RECEIVE_ADDRESS -> WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS
+        WalletAbiGetterPermission.GET_RAW_SIGNING_X_ONLY_PUBKEY -> WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY
+    }
+}
+
+private fun WalletAbiSessionRequest.requestKey(): String = "$topic:$requestId"
+
 private fun buildJsonRpcRequestEnvelope(
+    json: Json,
     requestId: Long,
     method: String,
     paramsJson: String?,
@@ -701,6 +1004,49 @@ private fun buildJsonRpcRequestEnvelope(
         put("id", requestId)
         put("jsonrpc", "2.0")
         put("method", method)
-        paramsJson?.let { put("params", it) }
+        paramsJson?.normalizeJsonRpcParams()?.let { normalized ->
+            put("params", json.parseToJsonElement(normalized))
+        }
     }.toString()
+}
+
+private fun parseGetterValue(
+    json: Json,
+    permission: WalletAbiGetterPermission,
+    resultJson: String,
+): String {
+    val result = json.parseToJsonElement(resultJson).jsonObject
+    return when (permission) {
+        WalletAbiGetterPermission.GET_SIGNER_RECEIVE_ADDRESS -> {
+            result["signer_receive_address"]?.jsonPrimitive?.content
+        }
+
+        WalletAbiGetterPermission.GET_RAW_SIGNING_X_ONLY_PUBKEY -> {
+            result["raw_signing_x_only_pubkey"]?.jsonPrimitive?.content
+        }
+    } ?: throw IllegalStateException(
+        "Wallet ABI provider response is missing ${permission.methodName()} result",
+    )
+}
+
+private fun Throwable.isWalletConnectRequestExpired(): Boolean {
+    return message?.contains("request has expired", ignoreCase = true) == true ||
+        this::class.qualifiedName == "com.reown.android.internal.common.exception.RequestExpiredException"
+}
+
+private fun WalletAbiSessionRequest.displayOrigin(fallback: String?): String {
+    return peerName?.takeIf { it.isNotBlank() }
+        ?: peerUrl?.takeIf { it.isNotBlank() }
+        ?: verifyContext?.origin?.takeIf { it.isNotBlank() }
+        ?: fallback
+        ?: "Unknown dApp"
+}
+
+private fun String.normalizeJsonRpcParams(): String? {
+    val trimmed = trim()
+    return when {
+        trimmed.isBlank() -> null
+        trimmed == "null" -> null
+        else -> trimmed
+    }
 }
