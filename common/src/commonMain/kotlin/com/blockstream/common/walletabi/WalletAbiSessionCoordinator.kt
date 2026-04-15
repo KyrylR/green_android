@@ -151,6 +151,7 @@ internal class WalletAbiSessionCoordinator(
     private val walletAbiProviderRunner: WalletAbiProviderRunning,
     private val walletSettingsManager: WalletSettingsManager,
     private val walletConnectBridge: WalletAbiWalletConnectBridge,
+    private val walletAbiTransactionStore: WalletAbiTransactionStore? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val runtimes = mutableMapOf<String, WalletAbiRuntimeState>()
@@ -805,6 +806,19 @@ internal class WalletAbiSessionCoordinator(
             is WalletAbiProcessResult.Ok,
             is WalletAbiProcessResult.AbiError,
             -> {
+                if (result is WalletAbiProcessResult.Ok) {
+                    persistApprovedTransactionRecord(
+                        walletId = walletId,
+                        txHash = result.response.transaction?.txid,
+                        origin = item.origin,
+                        status = if (item.txRequest.broadcast) {
+                            WalletAbiTransactionRecordStatus.BROADCAST
+                        } else {
+                            WalletAbiTransactionRecordStatus.APPROVED
+                        },
+                        review = item.review,
+                    )
+                }
                 val responseJson = when (result) {
                     is WalletAbiProcessResult.Ok -> result.responseJson
                     is WalletAbiProcessResult.AbiError -> result.responseJson
@@ -874,6 +888,18 @@ internal class WalletAbiSessionCoordinator(
             prepared.response.transaction?.txid
         }
 
+        persistApprovedTransactionRecord(
+            walletId = walletId,
+            txHash = broadcastTxid ?: prepared.response.transaction?.txid,
+            origin = item.origin,
+            status = if (item.txRequest.broadcast) {
+                WalletAbiTransactionRecordStatus.BROADCAST
+            } else {
+                WalletAbiTransactionRecordStatus.APPROVED
+            },
+            review = item.review,
+        )
+
         val requestResponse = runCatching {
             respondSuccessOrExpire(
                 runtime = runtime,
@@ -905,6 +931,29 @@ internal class WalletAbiSessionCoordinator(
                 } else {
                     "Wallet ABI request approved"
                 },
+            )
+        }
+    }
+
+    private suspend fun persistApprovedTransactionRecord(
+        walletId: String,
+        txHash: String?,
+        origin: String,
+        status: WalletAbiTransactionRecordStatus,
+        review: WalletAbiTransactionReviewLook,
+    ) {
+        val resolvedTxHash = txHash?.takeIf { it.isNotBlank() } ?: return
+        val store = walletAbiTransactionStore ?: return
+        runCatching {
+            store.save(
+                WalletAbiTransactionRecord(
+                    walletId = walletId,
+                    txHash = resolvedTxHash,
+                    origin = origin,
+                    status = status,
+                    review = review,
+                    updatedAtEpochMilliseconds = kotlin.time.Clock.System.now().toEpochMilliseconds(),
+                ),
             )
         }
     }
