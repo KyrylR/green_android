@@ -13,6 +13,9 @@ import com.blockstream.data.gdk.GdkSession
 import com.blockstream.data.gdk.data.Transaction
 import com.blockstream.data.utils.toAmountLook
 import com.blockstream.data.utils.toAmountLookOrNa
+import com.blockstream.common.walletabi.WalletAbiTransactionListSummaryLook
+import com.blockstream.common.walletabi.WalletAbiTransactionRecord
+import com.blockstream.common.walletabi.toListSummaryLook
 import com.blockstream.utils.Loggable
 import org.jetbrains.compose.resources.StringResource
 
@@ -21,6 +24,7 @@ data class TransactionLook constructor(
     val transaction: Transaction,
     val assets: List<String>,
     val fiat: String? = null,
+    val walletAbiSummary: WalletAbiTransactionListSummaryLook? = null,
 ) {
 
     val asMasked: TransactionLook
@@ -46,6 +50,13 @@ data class TransactionLook constructor(
         }
 
     companion object : Loggable() {
+        internal fun withWalletAbiRecord(
+            transactionLook: TransactionLook,
+            record: WalletAbiTransactionRecord?,
+        ): TransactionLook {
+            return transactionLook.copy(walletAbiSummary = record?.toListSummaryLook())
+        }
+
         suspend fun create(
             transaction: Transaction, session: GdkSession, disableHideAmounts: Boolean = false
         ): TransactionLook {

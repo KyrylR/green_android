@@ -1,6 +1,8 @@
 package com.blockstream.common.walletabi
 
-import com.blockstream.common.database.Database
+import com.blockstream.data.database.Database
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -27,6 +29,12 @@ internal class WalletAbiTransactionStore(
     private val database: Database,
     private val json: Json,
 ) {
+    fun observeList(walletId: String): Flow<List<WalletAbiTransactionRecord>> {
+        return database.getWalletAbiTransactionRecordsFlow(walletId).map { rows ->
+            rows.mapNotNull(::decodeRecordOrNull)
+        }
+    }
+
     suspend fun get(walletId: String, txHash: String): WalletAbiTransactionRecord? {
         return database.getWalletAbiTransactionRecord(
             walletId = walletId,
@@ -55,12 +63,12 @@ internal class WalletAbiTransactionStore(
         )
     }
 
-    private fun decodeRecord(row: com.blockstream.common.database.wallet.WalletAbiTransactions): WalletAbiTransactionRecord {
+    private fun decodeRecord(row: com.blockstream.data.database.wallet.WalletAbiTransactions): WalletAbiTransactionRecord {
         return json.decodeFromString(row.record_json)
     }
 
     private fun decodeRecordOrNull(
-        row: com.blockstream.common.database.wallet.WalletAbiTransactions,
+        row: com.blockstream.data.database.wallet.WalletAbiTransactions,
     ): WalletAbiTransactionRecord? {
         return runCatching {
             decodeRecord(row)

@@ -9,6 +9,7 @@ import com.blockstream.compose.extensions.previewWallet
 import com.blockstream.compose.looks.transaction.TransactionLook
 import com.blockstream.compose.navigation.NavData
 import com.blockstream.compose.navigation.NavigateDestinations
+import com.blockstream.common.walletabi.WalletAbiTransactionStore
 import com.blockstream.data.data.DataState
 import com.blockstream.data.data.GreenWallet
 import com.blockstream.data.extensions.ifConnected
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.getString
 import org.koin.core.component.inject
 
@@ -74,6 +76,14 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
 
     private val isSwapAvailableUseCase: IsSwapAvailableUseCase by inject()
     private val getPendingMeldTransactions: GetPendingMeldTransactions by inject()
+    private val walletAbiTransactionStore = WalletAbiTransactionStore(
+        database = database,
+        json = Json {
+            encodeDefaults = true
+            explicitNulls = false
+            ignoreUnknownKeys = true
+        }
+    )
     private var refreshJob: Job? = null
 
     override fun segmentation(): HashMap<String, Any> = countly.sessionSegmentation(session = session)
@@ -102,19 +112,28 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
     }
 
     private val _transactions: StateFlow<DataState<List<TransactionLook>>> = combine(
-        session.walletTransactions.filter { session.isConnected }, session.settings(), _meldTransactions
-    ) { transactions, _, meldTransactions ->
+        session.walletTransactions.filter { session.isConnected },
+        session.settings(),
+        _meldTransactions,
+        walletAbiTransactionStore.observeList(greenWallet.id),
+    ) { transactions, _, meldTransactions, walletAbiRecords ->
         transactions.mapSuccess { gdkTransactions ->
             // A txHash can appear across multiple accounts, so keep all gdk transactions
             // and only add meld transactions that don't overlap.
             val uniqueHashes = gdkTransactions.mapTo(mutableSetOf()) { it.txHash }
+            val walletAbiRecordsByHash = walletAbiRecords.associateBy { it.txHash }
 
             val allTransactions =
                 (gdkTransactions + meldTransactions.filter { it.txHash !in uniqueHashes }).sortedByDescending { it.createdAtTs }
 
             allTransactions.map {
-                TransactionLook.create(
-                    transaction = it, session = session, disableHideAmounts = true
+                TransactionLook.withWalletAbiRecord(
+                    transactionLook = TransactionLook.create(
+                        transaction = it,
+                        session = session,
+                        disableHideAmounts = true,
+                    ),
+                    record = walletAbiRecordsByHash[it.txHash],
                 )
             }
         }
