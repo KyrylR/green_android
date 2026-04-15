@@ -8,6 +8,11 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 
+internal data class WalletAbiKnownDestinationLookup(
+    val addresses: Set<String> = emptySet(),
+    val scripts: Set<String> = emptySet(),
+)
+
 internal fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
     result: ValidateAddressees,
 ): Boolean {
@@ -40,6 +45,19 @@ internal fun walletAbiOutputMatchesKnownWalletAddress(
     knownAddresses: Set<String>,
 ): Boolean {
     return walletAbiOutputAddressCandidates(output).any { it in knownAddresses }
+}
+
+internal fun walletAbiOutputMatchesKnownWalletDestination(
+    output: WalletAbiOutputSchema,
+    knownDestinations: WalletAbiKnownDestinationLookup,
+): Boolean {
+    return walletAbiOutputMatchesKnownWalletAddress(
+        output = output,
+        knownAddresses = knownDestinations.addresses,
+    ) || walletAbiOutputMatchesKnownWalletScript(
+        output = output,
+        knownScripts = knownDestinations.scripts,
+    )
 }
 
 private fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
