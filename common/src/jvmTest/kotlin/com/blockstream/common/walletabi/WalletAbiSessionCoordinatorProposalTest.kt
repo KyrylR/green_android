@@ -25,10 +25,7 @@ class WalletAbiSessionCoordinatorProposalTest {
     fun pairWalletConnectUriQueuesSessionProposalApproval() = runTest {
         val proposal = walletAbiProposal()
         val bridge = ProposalBridge(proposal = proposal)
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = walletSettingsManager(),
             walletConnectBridge = bridge,
         )
@@ -75,10 +72,7 @@ class WalletAbiSessionCoordinatorProposalTest {
             proposal = proposal,
             approvedSession = sessionInfo,
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
         )
@@ -165,6 +159,28 @@ class WalletAbiSessionCoordinatorProposalTest {
             properties = null,
             scopedProperties = null,
             verifyContext = null,
+        )
+    }
+
+    private fun coordinator(
+        walletSettingsManager: WalletSettingsManager,
+        walletConnectBridge: WalletAbiWalletConnectBridge,
+    ): WalletAbiSessionCoordinator {
+        val executionContextResolver = FakeExecutionContextResolver()
+        val walletAbiProviderRunner = FakeWalletAbiProviderRunner()
+        return WalletAbiSessionCoordinator(
+            json = json,
+            executionContextResolver = executionContextResolver,
+            walletAbiImpactPreviewer = NoopWalletAbiImpactPreviewer(),
+            walletAbiProcessor = WalletAbiProcessor(
+                json = json,
+                executionContextResolver = executionContextResolver,
+                providerRunner = walletAbiProviderRunner,
+            ),
+            walletAbiResultPresenter = WalletAbiResultPresenter(),
+            walletAbiProviderRunner = walletAbiProviderRunner,
+            walletSettingsManager = walletSettingsManager,
+            walletConnectBridge = walletConnectBridge,
         )
     }
 }

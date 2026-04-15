@@ -48,10 +48,7 @@ class WalletAbiSessionCoordinatorStateTest {
                 ),
             ),
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = walletSettingsManager,
             walletConnectBridge = bridge,
         )
@@ -84,10 +81,7 @@ class WalletAbiSessionCoordinatorStateTest {
                 ),
             ),
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = walletSettingsManager,
             walletConnectBridge = FakeWalletAbiWalletConnectBridge(),
         )
@@ -168,6 +162,28 @@ class WalletAbiSessionCoordinatorStateTest {
             ),
         ),
     )
+
+    private fun coordinator(
+        walletSettingsManager: WalletSettingsManager,
+        walletConnectBridge: WalletAbiWalletConnectBridge,
+    ): WalletAbiSessionCoordinator {
+        val executionContextResolver = FakeExecutionContextResolver()
+        val walletAbiProviderRunner = FakeWalletAbiProviderRunner()
+        return WalletAbiSessionCoordinator(
+            json = json,
+            executionContextResolver = executionContextResolver,
+            walletAbiImpactPreviewer = NoopWalletAbiImpactPreviewer(),
+            walletAbiProcessor = WalletAbiProcessor(
+                json = json,
+                executionContextResolver = executionContextResolver,
+                providerRunner = walletAbiProviderRunner,
+            ),
+            walletAbiResultPresenter = WalletAbiResultPresenter(),
+            walletAbiProviderRunner = walletAbiProviderRunner,
+            walletSettingsManager = walletSettingsManager,
+            walletConnectBridge = walletConnectBridge,
+        )
+    }
 }
 
 private class FakeWalletAbiWalletConnectBridge(
