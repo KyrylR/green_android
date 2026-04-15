@@ -46,6 +46,18 @@ class WalletSettingsManager(
         return getBoolean(walletId = walletId, key = KEY_TOTAL_BALANCE_IN_FIAT)
     }
 
+    suspend fun getWalletAbiSessionState(walletId: String): String? {
+        return getString(walletId = walletId, key = KEY_WALLET_ABI_SESSION_STATE)
+    }
+
+    suspend fun setWalletAbiSessionState(walletId: String, stateJson: String) {
+        setString(walletId = walletId, key = KEY_WALLET_ABI_SESSION_STATE, stateJson)
+    }
+
+    suspend fun clearWalletAbiSessionState(walletId: String) {
+        database.deleteWalletSetting(walletId = walletId, key = KEY_WALLET_ABI_SESSION_STATE)
+    }
+
     // Private methods
     private suspend fun getBoolean(walletId: String, key: String): Boolean {
         return database.getWalletSetting(walletId = walletId, key = key)?.let {
@@ -88,5 +100,6 @@ class WalletSettingsManager(
         const val KEY_SWAPS_ENABLED = "swaps_enabled"
         const val KEY_LIGHTNING_NODE_ID = "lightning_node_id"
         const val KEY_TOTAL_BALANCE_IN_FIAT = "total_balance_in_fiat"
+        const val KEY_WALLET_ABI_SESSION_STATE = "wallet_abi_session_state"
     }
 }
