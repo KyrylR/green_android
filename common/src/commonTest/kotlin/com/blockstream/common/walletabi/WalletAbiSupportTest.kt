@@ -157,4 +157,45 @@ class WalletAbiSupportTest {
         assertEquals("slide_cancelled", details.getValue("reason").let { (it as JsonPrimitive).content })
         assertNull(decoded.transaction)
     }
+
+    @Test
+    fun esploraApiBaseUrlNormalizationAppendsApiAndTrimsTxSuffix() {
+        assertEquals("https://blockstream.info/liquid/api", "https://blockstream.info/liquid".toWalletAbiEsploraApiBaseUrl())
+        assertEquals("https://blockstream.info/liquid/api", "https://blockstream.info/liquid/api".toWalletAbiEsploraApiBaseUrl())
+        assertEquals("https://blockstream.info/liquid/api", " https://blockstream.info/liquid/tx/ ".toWalletAbiEsploraApiBaseUrl())
+        assertNull("   ".toWalletAbiEsploraApiBaseUrl())
+        assertNull((null as String?).toWalletAbiEsploraApiBaseUrl())
+    }
+
+    @Test
+    fun explicitTxOutRequiresAssetValueAndScript() {
+        val explicit = WalletAbiEsploraVout(
+            scriptPubkey = "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+            value = 1_234L,
+            asset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+        ).toExplicitTxOutOrNull()
+
+        assertNotNull(explicit)
+        assertNull(
+            WalletAbiEsploraVout(
+                scriptPubkey = "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+                value = null,
+                asset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+            ).toExplicitTxOutOrNull(),
+        )
+        assertNull(
+            WalletAbiEsploraVout(
+                scriptPubkey = "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+                value = 1_234L,
+                asset = null,
+            ).toExplicitTxOutOrNull(),
+        )
+        assertNull(
+            WalletAbiEsploraVout(
+                scriptPubkey = "",
+                value = 1_234L,
+                asset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+            ).toExplicitTxOutOrNull(),
+        )
+    }
 }
