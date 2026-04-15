@@ -16,6 +16,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.toRoute
 import com.blockstream.compose.dialogs.HwWatchOnlyDialog
+import com.blockstream.common.models.walletabi.WalletAbiScanViewModel
 import com.blockstream.compose.dialogs.TorWarningDialog
 import com.blockstream.compose.dialogs.UrlWarningDialog
 import com.blockstream.compose.managers.rememberStateKeeperFactory
@@ -167,6 +168,7 @@ import com.blockstream.compose.screens.settings.WatchOnlyScreen
 import com.blockstream.compose.screens.support.SupportScreen
 import com.blockstream.compose.screens.swap.SwapScreen
 import com.blockstream.compose.screens.transaction.TransactionScreen
+import com.blockstream.compose.screens.walletabi.WalletAbiScanScreen
 import com.blockstream.compose.screens.twofactor.ReEnable2FAScreen
 import com.blockstream.compose.sheets.AccountRenameBottomSheet
 import com.blockstream.compose.sheets.AccountsBottomSheet
@@ -388,6 +390,14 @@ fun Router(
                     TransactionViewModel(
                         greenWallet = args.greenWallet,
                         transaction = args.transaction
+                    )
+                })
+            }
+            appComposable<NavigateDestinations.WalletAbiScan> {
+                val args = it.toRoute<NavigateDestinations.WalletAbiScan>()
+                WalletAbiScanScreen(viewModel {
+                    WalletAbiScanViewModel(
+                        greenWallet = args.greenWallet,
                     )
                 })
             }
