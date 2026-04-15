@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +31,7 @@ import blockstream_green.common.generated.resources.id_processing_payment
 import blockstream_green.common.generated.resources.id_refundable
 import blockstream_green.common.generated.resources.id_unconfirmed
 import blockstream_green.common.generated.resources.question
+import blockstream_green.common.generated.resources.signature
 import com.blockstream.common.extensions.isNotBlank
 import com.blockstream.common.gdk.data.Transaction
 import com.blockstream.common.gdk.data.isMeldPending
@@ -40,6 +42,7 @@ import com.blockstream.compose.extensions.directionColor
 import com.blockstream.compose.extensions.icon
 import com.blockstream.compose.theme.bodyMedium
 import com.blockstream.compose.theme.bodySmall
+import com.blockstream.compose.theme.green
 import com.blockstream.compose.theme.labelLarge
 import com.blockstream.compose.theme.md_theme_inverseSurface
 import com.blockstream.compose.theme.orange
@@ -68,24 +71,29 @@ fun GreenTransaction(
         Box {
 
             val status = transactionLook.status
+            val walletAbiSummary = transactionLook.walletAbiSummary
             Row(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
 
-                when (transactionLook.transaction.txType) {
-                    Transaction.Type.IN -> Res.drawable.arrow_line_down
-                    Transaction.Type.OUT -> Res.drawable.arrow_line_up
-                    Transaction.Type.REDEPOSIT -> Res.drawable.arrow_u_left_down
-                    Transaction.Type.MIXED -> Res.drawable.arrows_down_up
-                    Transaction.Type.UNKNOWN -> Res.drawable.question
+                when {
+                    walletAbiSummary != null -> Res.drawable.signature
+                    transactionLook.transaction.txType == Transaction.Type.IN -> Res.drawable.arrow_line_down
+                    transactionLook.transaction.txType == Transaction.Type.OUT -> Res.drawable.arrow_line_up
+                    transactionLook.transaction.txType == Transaction.Type.REDEPOSIT -> Res.drawable.arrow_u_left_down
+                    transactionLook.transaction.txType == Transaction.Type.MIXED -> Res.drawable.arrows_down_up
+                    else -> Res.drawable.question
                 }.let {
                     painterResource(it)
                 }.also {
                     Image(
                         painter = it,
-                        contentDescription = null
+                        contentDescription = null,
+                        colorFilter = walletAbiSummary?.let {
+                            ColorFilter.tint(green)
+                        }
                     )
                 }
 
@@ -100,23 +108,32 @@ fun GreenTransaction(
                         modifier = Modifier.fillMaxWidth()
                     ) {
 
-                        GreenRow(
-                            padding = 0,
-                            space = 2,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Column {
                             Text(
-                                text = stringResource(transactionLook.directionText),
+                                text = walletAbiSummary?.let { "Wallet ABI" }
+                                    ?: stringResource(transactionLook.directionText),
                                 style = labelLarge,
                                 lineHeight = 1.sp
                             )
 
-                            if (!transactionLook.transaction.spv.disabledOrUnconfirmedOrVerified()) {
-                                Image(
-                                    painter = painterResource(transactionLook.transaction.spv.icon()),
-                                    contentDescription = "SPV",
-                                    modifier = Modifier.size(20.dp)
+                            walletAbiSummary?.origin?.takeIf { it.isNotBlank() }?.also {
+                                Text(
+                                    text = it,
+                                    style = bodySmall,
+                                    color = whiteMedium
                                 )
+                            } ?: GreenRow(
+                                padding = 0,
+                                space = 2,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (!transactionLook.transaction.spv.disabledOrUnconfirmedOrVerified()) {
+                                    Image(
+                                        painter = painterResource(transactionLook.transaction.spv.icon()),
+                                        contentDescription = "SPV",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -137,12 +154,19 @@ fun GreenTransaction(
                         modifier = Modifier.fillMaxWidth()
                     ) {
 
-                        AnimatedVisibility(visible = (status.onProgress && !transactionLook.transaction.isMeldPending())) {
+                        AnimatedVisibility(
+                            visible = (
+                                walletAbiSummary != null ||
+                                    (status.onProgress && !transactionLook.transaction.isMeldPending())
+                                )
+                        ) {
 
                             val isRefundableSwap = transactionLook.transaction.isRefundableSwap
-                            if (status.onProgress || isRefundableSwap) {
+                            if (walletAbiSummary != null || status.onProgress || isRefundableSwap) {
                                 val text = if (isRefundableSwap) {
                                     stringResource(Res.string.id_refundable)
+                                } else if (walletAbiSummary != null) {
+                                    walletAbiSummary.statusLabel
                                 } else if (status is Confirmed) {
                                     stringResource(
                                         if (status.confirmationsRequired > 2) Res.string.id_d6_confirmations else Res.string.id_12_confirmations,
@@ -153,6 +177,7 @@ fun GreenTransaction(
                                 }
 
                                 val bgColor = when {
+                                    walletAbiSummary?.statusLabel == "Broadcast" -> green
                                     isRefundableSwap -> red
                                     status is Confirmed -> md_theme_inverseSurface
                                     else -> orange
@@ -198,7 +223,25 @@ fun GreenTransaction(
                         }
                     }
 
-                    if (transactionLook.transaction.memo.isNotBlank()) {
+                    walletAbiSummary?.sentAway?.also { sentAway ->
+                        Text(
+                            text = buildString {
+                                append(sentAway)
+                                walletAbiSummary.sentBackToWallet?.also {
+                                    append(" / ")
+                                    append(it)
+                                }
+                                if (walletAbiSummary.additionalAssetCount > 0) {
+                                    append(" +")
+                                    append(walletAbiSummary.additionalAssetCount)
+                                }
+                            },
+                            style = bodySmall,
+                            color = whiteMedium
+                        )
+                    }
+
+                    if (walletAbiSummary == null && transactionLook.transaction.memo.isNotBlank()) {
                         // Memo
                         Text(
                             text = transactionLook.transaction.memo,
