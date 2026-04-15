@@ -95,6 +95,49 @@ class WalletAbiSessionCoordinatorStateTest {
         assertNull(walletSettingsManager.getWalletAbiSessionState("wallet-2"))
     }
 
+    @Test
+    fun disconnectActiveSessionClearsPersistedWalletAbiState() = runTest {
+        val walletSettingsManager = walletSettingsManager()
+        walletSettingsManager.setWalletAbiSessionState(
+            walletId = "wallet-3",
+            stateJson = json.encodeToString(
+                WalletAbiPersistedSessionState(
+                    topic = "topic-disconnect",
+                    chainId = "walabi:testnet-liquid",
+                ),
+            ),
+        )
+        val bridge = FakeWalletAbiWalletConnectBridge(
+            sessions = listOf(
+                walletAbiSessionInfo(
+                    topic = "topic-disconnect",
+                    origin = "Example dApp",
+                    methods = listOf(WALLET_ABI_METHOD_PROCESS_REQUEST),
+                    chainId = "walabi:testnet-liquid",
+                ),
+            ),
+        )
+        val coordinator = coordinator(
+            walletSettingsManager = walletSettingsManager,
+            walletConnectBridge = bridge,
+        )
+
+        coordinator.bind(
+            greenWallet = greenWallet("wallet-3"),
+            session = mockk<GdkSession>(),
+        )
+
+        val outcome = coordinator.disconnectActiveSession("wallet-3")
+
+        assertEquals(
+            WalletAbiActionOutcome.Success("WalletConnect Wallet ABI session disconnected"),
+            outcome,
+        )
+        assertEquals(listOf("topic-disconnect"), bridge.disconnectedTopics)
+        assertNull(coordinator.state("wallet-3").value.activeConnection)
+        assertNull(walletSettingsManager.getWalletAbiSessionState("wallet-3"))
+    }
+
     private fun walletSettingsManager(): WalletSettingsManager {
         val settings = PreferencesSettings(
             Preferences.userRoot().node("wallet-abi-session-coordinator-test-${System.nanoTime()}"),
@@ -187,9 +230,11 @@ class WalletAbiSessionCoordinatorStateTest {
 }
 
 private class FakeWalletAbiWalletConnectBridge(
-    private val sessions: List<WalletAbiSessionInfo> = emptyList(),
+    sessions: List<WalletAbiSessionInfo> = emptyList(),
 ) : WalletAbiWalletConnectBridge {
     var initializeCalls: Int = 0
+    var disconnectedTopics: List<String> = emptyList()
+    private var activeSessions: List<WalletAbiSessionInfo> = sessions
 
     override suspend fun initialize() {
         initializeCalls += 1
@@ -199,10 +244,10 @@ private class FakeWalletAbiWalletConnectBridge(
 
     override suspend fun pair(uri: String) = Unit
 
-    override suspend fun getActiveSessions(): List<WalletAbiSessionInfo> = sessions
+    override suspend fun getActiveSessions(): List<WalletAbiSessionInfo> = activeSessions
 
     override suspend fun getActiveSession(topic: String): WalletAbiSessionInfo? {
-        return sessions.firstOrNull { it.topic == topic }
+        return activeSessions.firstOrNull { it.topic == topic }
     }
 
     override suspend fun getPendingRequests(topic: String): List<WalletAbiSessionRequest> = emptyList()
@@ -218,7 +263,10 @@ private class FakeWalletAbiWalletConnectBridge(
 
     override suspend fun respondError(topic: String, requestId: Long, code: Int, message: String) = Unit
 
-    override suspend fun disconnect(topic: String) = Unit
+    override suspend fun disconnect(topic: String) {
+        disconnectedTopics = disconnectedTopics + topic
+        activeSessions = activeSessions.filterNot { it.topic == topic }
+    }
 }
 
 internal class FakeExecutionContextResolver : WalletAbiExecutionContextResolving {

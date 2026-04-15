@@ -291,6 +291,26 @@ internal class WalletAbiSessionCoordinator(
         }
     }
 
+    suspend fun disconnectActiveSession(walletId: String): WalletAbiActionOutcome {
+        val runtime = runtime(walletId)
+        val topic = runtime.activeSession?.topic ?: runtime.persistedState?.topic
+            ?: return WalletAbiActionOutcome.Error(
+                IllegalStateException("No WalletConnect Wallet ABI session is active"),
+            )
+
+        return runCatching {
+            walletConnectBridge.disconnect(topic)
+            forgetSession(
+                walletId = walletId,
+                runtime = runtime,
+                topic = topic,
+            )
+            WalletAbiActionOutcome.Success("WalletConnect Wallet ABI session disconnected")
+        }.getOrElse { error ->
+            WalletAbiActionOutcome.Error(error)
+        }
+    }
+
     private suspend fun loadPersistedSessionStateOrNull(
         walletId: String,
     ): WalletAbiPersistedSessionState? {
