@@ -15,12 +15,16 @@ internal fun WalletAbiTransactionRecord.toListSummaryLook(): WalletAbiTransactio
     val impactSummary = walletAbiCompactImpactSummary(review)
     return WalletAbiTransactionListSummaryLook(
         origin = origin,
-        statusLabel = when (status) {
-            WalletAbiTransactionRecordStatus.APPROVED -> "Signed"
-            WalletAbiTransactionRecordStatus.BROADCAST -> "Broadcast"
-        },
+        statusLabel = status.presentationLabel(),
         sentAway = impactSummary?.sentAway,
         sentBackToWallet = impactSummary?.sentBackToWallet,
         additionalAssetCount = impactSummary?.additionalAssetCount ?: 0,
     )
+}
+
+internal fun WalletAbiTransactionRecordStatus.presentationLabel(): String {
+    return when (this) {
+        WalletAbiTransactionRecordStatus.APPROVED -> "Signed"
+        WalletAbiTransactionRecordStatus.BROADCAST -> "Broadcast"
+    }
 }

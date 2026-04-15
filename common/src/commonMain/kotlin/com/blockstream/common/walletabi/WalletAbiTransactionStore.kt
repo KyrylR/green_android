@@ -35,6 +35,12 @@ internal class WalletAbiTransactionStore(
         }
     }
 
+    fun observe(walletId: String, txHash: String): Flow<WalletAbiTransactionRecord?> {
+        return database.getWalletAbiTransactionRecordFlow(walletId, txHash).map { row ->
+            row?.let(::decodeRecordOrNull)
+        }
+    }
+
     suspend fun get(walletId: String, txHash: String): WalletAbiTransactionRecord? {
         return database.getWalletAbiTransactionRecord(
             walletId = walletId,

@@ -335,6 +335,16 @@ class Database(driverFactory: DriverFactory, val settingsManager: SettingsManage
             .executeAsOneOrNull()
     }
 
+    fun getWalletAbiTransactionRecordFlow(walletId: String, txHash: String) =
+        walletDB.walletAbiTransactionsQueries
+            .getWalletAbiTransactionRecord(wallet_id = walletId, tx_hash = txHash)
+            .asFlow()
+            .map {
+                io {
+                    it.executeAsOneOrNull()
+                }
+            }
+
     suspend fun setWalletAbiTransactionRecord(
         walletId: String,
         txHash: String,
