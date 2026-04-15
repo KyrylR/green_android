@@ -64,11 +64,13 @@ class WalletAbiSessionCoordinatorTransactionTest {
             sessions = listOf(walletAbiSessionInfo(topic = "topic-1")),
         )
         val session = walletSession()
+        val store = WalletAbiTransactionStore(database = manager.database, json = json)
         val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
             executionContextResolver = TransactionExecutionContextResolver(),
             walletAbiProviderRunner = TransactionWalletAbiProviderRunner(json),
+            walletAbiTransactionStore = store,
         )
 
         coordinator.bind(
@@ -98,6 +100,10 @@ class WalletAbiSessionCoordinatorTransactionTest {
             outcome,
         )
         assertEquals(1, bridge.successResponses.size)
+        assertEquals(
+            WalletAbiTransactionRecordStatus.APPROVED,
+            store.get(walletId = "wallet-1", txHash = "approved-txid")?.status,
+        )
         assertNull(coordinator.state("wallet-1").value.overlay)
     }
 
@@ -117,11 +123,13 @@ class WalletAbiSessionCoordinatorTransactionTest {
             sessions = listOf(walletAbiSessionInfo(topic = "topic-1")),
         )
         val session = walletSession()
+        val store = WalletAbiTransactionStore(database = manager.database, json = json)
         val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
             executionContextResolver = TransactionExecutionContextResolver(),
             walletAbiProviderRunner = TransactionWalletAbiProviderRunner(json),
+            walletAbiTransactionStore = store,
         )
 
         coordinator.bind(
@@ -156,6 +164,10 @@ class WalletAbiSessionCoordinatorTransactionTest {
         )
         assertEquals(1, bridge.successResponses.size)
         assertTrue(bridge.successResponses.single().resultJson.contains("resolved-txid"))
+        assertEquals(
+            WalletAbiTransactionRecordStatus.APPROVED,
+            store.get(walletId = "wallet-1", txHash = "resolved-txid")?.status,
+        )
         assertNull(coordinator.state("wallet-1").value.overlay)
     }
 
@@ -221,6 +233,7 @@ class WalletAbiSessionCoordinatorTransactionTest {
         walletConnectBridge: WalletAbiWalletConnectBridge,
         executionContextResolver: WalletAbiExecutionContextResolving,
         walletAbiProviderRunner: WalletAbiProviderRunning,
+        walletAbiTransactionStore: WalletAbiTransactionStore? = null,
     ): WalletAbiSessionCoordinator {
         return WalletAbiSessionCoordinator(
             json = json,
@@ -235,6 +248,7 @@ class WalletAbiSessionCoordinatorTransactionTest {
             walletAbiProviderRunner = walletAbiProviderRunner,
             walletSettingsManager = walletSettingsManager,
             walletConnectBridge = walletConnectBridge,
+            walletAbiTransactionStore = walletAbiTransactionStore,
         )
     }
 
