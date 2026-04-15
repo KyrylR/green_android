@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.test.runTest
 import lwk.Chain
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -253,4 +254,99 @@ class WalletAbiSupportTest {
         assertNotNull(txOut)
         assertEquals("0014751e76e8199196d454941c45d1b3a323f1433bd6", txOut.scriptPubkey().toString())
     }
+
+    @Test
+    fun walletAbiOutputClassificationTreatsWalletBlindedScriptAsWalletReceive() {
+        val output = walletOutputSchema()
+
+        assertEquals(
+            WalletAbiOutputClassification.WALLET_RECEIVE,
+            classifyWalletAbiOutput(output),
+        )
+    }
+
+    @Test
+    fun walletAbiOutputClassificationAcceptsStringBlinderVariant() {
+        val output = walletOutputSchema(
+            blinder = JsonPrimitive("wallet"),
+        )
+
+        assertEquals(
+            WalletAbiOutputClassification.WALLET_RECEIVE,
+            classifyWalletAbiOutput(output),
+        )
+    }
+
+    @Test
+    fun walletAbiOutputClassificationKeepsOpReturnAsBurnLike() {
+        val output = WalletAbiOutputSchema(
+            id = "burn-0",
+            amountSat = 100,
+            lock = buildJsonObject {
+                put("type", "script")
+                put("script", "6a0bdeadbeef")
+            },
+            asset = buildJsonObject {
+                put("asset_id", "policy-asset")
+            },
+            blinder = buildJsonObject {
+                put("type", "wallet")
+            },
+        )
+
+        assertEquals(
+            WalletAbiOutputClassification.OP_RETURN,
+            classifyWalletAbiOutput(output),
+        )
+    }
+
+    @Test
+    fun walletAbiOutputClassificationPromotesKnownWalletDestination() = runTest {
+        val output = externalOutputSchema()
+
+        assertEquals(
+            WalletAbiOutputClassification.WALLET_RECEIVE,
+            resolveWalletAbiOutputClassification(
+                output = output,
+                walletOwnedDestinationDetector = { true },
+            ),
+        )
+    }
+
+    private fun walletOutputSchema(
+        assetId: String = "policy-asset",
+        amountSat: Long = 2_500,
+        blinder: kotlinx.serialization.json.JsonElement = buildJsonObject {
+            put("type", "wallet")
+        },
+    ) = WalletAbiOutputSchema(
+        id = "receive-0",
+        amountSat = amountSat,
+        lock = buildJsonObject {
+            put("type", "script")
+            put("script", "0014feedface1234feedface1234feedface1234")
+        },
+        asset = buildJsonObject {
+            put("asset_id", assetId)
+        },
+        blinder = blinder,
+    )
+
+    private fun externalOutputSchema(
+        assetId: String = "policy-asset",
+        amountSat: Long = 2_500,
+    ) = WalletAbiOutputSchema(
+        id = "external-0",
+        amountSat = amountSat,
+        lock = buildJsonObject {
+            put("type", "script")
+            put("script", "0014aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        },
+        asset = buildJsonObject {
+            put("asset_id", assetId)
+        },
+        blinder = buildJsonObject {
+            put("type", "rand")
+        },
+    )
 }
