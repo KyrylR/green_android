@@ -22,6 +22,7 @@ import com.blockstream.common.gdk.data.AssetBalance
 import com.blockstream.common.gdk.data.AssetBalanceList
 import com.blockstream.common.gdk.data.Network
 import com.blockstream.common.looks.transaction.TransactionConfirmLook
+import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
 import com.blockstream.common.models.GreenViewModel
 import com.blockstream.common.models.jade.JadeQrOperation
 import com.blockstream.common.models.settings.WalletSettingsSection
@@ -62,6 +63,12 @@ sealed class NavigateDestinations : NavigateDestination() {
 
     @Serializable
     data class WalletAbiRequest(val greenWallet: GreenWallet) : NavigateDestination(unique = true)
+
+    @Serializable
+    data class WalletAbiSuccess(
+        val greenWallet: GreenWallet,
+        val success: WalletAbiSuccessLook,
+    ) : NavigateDestination(unique = true)
 
     @Serializable
     data object Home : NavigateDestination(unique = true, makeItRoot = true)

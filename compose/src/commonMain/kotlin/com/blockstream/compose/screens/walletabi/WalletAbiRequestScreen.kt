@@ -17,6 +17,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blockstream.common.models.walletabi.WalletAbiRequestViewModelAbstract
+import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
+import com.blockstream.common.navigation.NavigateDestinations
+import com.blockstream.common.sideeffects.SideEffects
 import com.blockstream.common.utils.StringHolder
 import com.blockstream.common.models.walletabi.WalletAbiRequestImpactLook
 import com.blockstream.common.models.walletabi.WalletAbiRequestLook
@@ -39,6 +42,7 @@ import com.blockstream.compose.theme.whiteMedium
 import com.blockstream.compose.utils.SetupScreen
 import com.blockstream.ui.components.GreenColumn
 import com.blockstream.ui.components.GreenRow
+import com.blockstream.ui.navigation.setResult
 
 @Composable
 fun WalletAbiRequestScreen(
@@ -48,6 +52,13 @@ fun WalletAbiRequestScreen(
         viewModel = viewModel,
         withPadding = false,
         withBottomInsets = false,
+        sideEffectsHandler = {
+            if (it is SideEffects.Success) {
+                (it.data as? WalletAbiSuccessLook)?.also { success ->
+                    NavigateDestinations.WalletAbiRequest.setResult(success)
+                }
+            }
+        },
     ) { innerPadding ->
         val review by viewModel.review.collectAsStateWithLifecycle()
         val isResolving by viewModel.isResolving.collectAsStateWithLifecycle()
