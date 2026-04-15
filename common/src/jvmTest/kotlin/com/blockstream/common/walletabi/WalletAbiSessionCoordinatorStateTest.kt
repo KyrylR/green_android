@@ -263,8 +263,22 @@ internal class FakeWalletAbiProviderRunner : WalletAbiProviderRunning {
         context: WalletAbiExecutionContext,
         requestEnvelopeJson: String,
     ): WalletAbiProviderJsonRpcRunResult {
+        val (method, _) = parseWalletAbiJsonRpcDispatch(
+            json = Json { ignoreUnknownKeys = true },
+            requestEnvelopeJson = requestEnvelopeJson,
+        )
         return WalletAbiProviderJsonRpcRunResult(
-            resultJson = """{"raw_signing_x_only_pubkey":"0123abcd"}""",
+            resultJson = when (method) {
+                WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS -> {
+                    """{"signer_receive_address":"tlq1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqh5v5m2"}"""
+                }
+
+                WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY -> {
+                    """{"raw_signing_x_only_pubkey":"0123abcd"}"""
+                }
+
+                else -> error("Unexpected JSON-RPC method $method")
+            },
         )
     }
 }
