@@ -82,6 +82,7 @@ runner = "1.7.0"
 core = "1.7.0"
 material3-adaptive = "1.2.0-alpha06"
 koalaplot = "0.9.1"
+reown = "1.4.1"
 
 [libraries]
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit-dialogs" }
@@ -104,6 +105,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-resources = { module = "io.ktor:ktor-client-resources", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -196,6 +198,8 @@ androidx-runner = { group = "androidx.test", name = "runner", version.ref = "run
 androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
 material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "material3-adaptive" }
 koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot" }
+reown-android-core = { module = "com.reown:android-core", version.ref = "reown" }
+reown-walletkit = { module = "com.reown:walletkit", version.ref = "reown" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

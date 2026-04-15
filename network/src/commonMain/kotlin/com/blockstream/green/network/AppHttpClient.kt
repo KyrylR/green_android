@@ -13,6 +13,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -153,6 +154,7 @@ abstract class AppHttpClient(
         ): HttpClient {
             return HttpClient {
                 install(Resources)
+                install(WebSockets)
                 if (enableLogging) {
                     install(Logging) {
                         logger = object : io.ktor.client.plugins.logging.Logger {
