@@ -28,6 +28,7 @@ import com.blockstream.data.gdk.data.AssetBalance
 import com.blockstream.data.gdk.data.AssetBalanceList
 import com.blockstream.data.gdk.data.Network
 import com.blockstream.data.transaction.TransactionConfirmation
+import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -60,6 +61,12 @@ sealed class NavigateDestinations : NavigateDestination() {
 
     @Serializable
     data class WalletAbiRequest(val greenWallet: GreenWallet) : NavigateDestination(unique = true)
+
+    @Serializable
+    data class WalletAbiSuccess(
+        val greenWallet: GreenWallet,
+        val success: WalletAbiSuccessLook,
+    ) : NavigateDestination(unique = true)
 
     @Serializable
     data object Home : NavigateDestination(unique = true, makeItRoot = true)

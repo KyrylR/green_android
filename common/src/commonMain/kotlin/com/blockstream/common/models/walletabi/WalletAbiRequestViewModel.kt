@@ -80,6 +80,11 @@ abstract class WalletAbiRequestViewModelAbstract(
     abstract fun approveTransaction()
     abstract fun rejectTransaction()
 
+    protected fun postApprovalSuccess(success: WalletAbiSuccessLook) {
+        postSideEffect(SideEffects.Success(success))
+        postSideEffect(SideEffects.NavigateBack())
+    }
+
     protected fun postCompletedAction(message: String) {
         postSideEffect(SideEffects.Snackbar(StringHolder.create(message)))
         postSideEffect(SideEffects.NavigateBack())
@@ -164,11 +169,13 @@ class WalletAbiRequestViewModel private constructor(
         }
 
         viewModelScope.launch {
+            val currentReview = review.value
             _isApproving.value = true
             try {
                 handleOutcome(
                     walletAbiSessionCoordinator.approveCurrentTransaction(greenWallet.id),
                     navigateBack = true,
+                    success = currentReview,
                 )
             } finally {
                 _isApproving.value = false
@@ -197,10 +204,14 @@ class WalletAbiRequestViewModel private constructor(
     private fun handleOutcome(
         outcome: WalletAbiActionOutcome,
         navigateBack: Boolean,
+        success: WalletAbiRequestLook? = null,
     ) {
         when (outcome) {
             is WalletAbiActionOutcome.Success -> {
-                if (navigateBack) {
+                val successLook = success?.toSuccessLook(outcome.message)
+                if (successLook != null) {
+                    postApprovalSuccess(successLook)
+                } else if (navigateBack) {
                     postCompletedAction(outcome.message)
                 } else {
                     postSideEffect(SideEffects.Snackbar(StringHolder.create(outcome.message)))
@@ -272,7 +283,7 @@ class WalletAbiRequestViewModelPreview :
     }
 
     override fun approveTransaction() {
-        postCompletedAction("Wallet ABI request approved")
+        _review.value?.toSuccessLook("Wallet ABI request approved")?.also(::postApprovalSuccess)
     }
 
     override fun rejectTransaction() {
@@ -328,6 +339,36 @@ private fun WalletAbiTransactionReviewLook.toRequestLook(): WalletAbiRequestLook
             )
         },
         warnings = warnings,
+    )
+}
+
+private fun WalletAbiRequestLook.toSuccessLook(message: String): WalletAbiSuccessLook? {
+    if (message == "Wallet ABI request expired" || message == "Wallet ABI request rejected") {
+        return null
+    }
+
+    val reference = message.substringAfter(": ", missingDelimiterValue = "")
+        .takeIf { message.startsWith("Wallet ABI transaction broadcast:") && it.isNotBlank() }
+    val title = if (isBroadcast) {
+        "Contract confirmed"
+    } else {
+        "Signature confirmed"
+    }
+    val successMessage = if (isBroadcast) {
+        "The Wallet ABI request from $origin was approved and submitted to the network."
+    } else {
+        "The Wallet ABI request from $origin was approved and signed successfully."
+    }
+
+    return WalletAbiSuccessLook(
+        title = title,
+        message = successMessage,
+        reference = reference,
+        shareText = buildList {
+            add(title)
+            add(successMessage)
+            reference?.also { add(it) }
+        }.joinToString(separator = "\n"),
     )
 }
 

@@ -18,6 +18,7 @@ import androidx.navigation.toRoute
 import com.blockstream.compose.dialogs.HwWatchOnlyDialog
 import com.blockstream.common.models.walletabi.WalletAbiScanViewModel
 import com.blockstream.common.models.walletabi.WalletAbiRequestViewModel
+import com.blockstream.common.models.walletabi.WalletAbiSuccessViewModel
 import com.blockstream.compose.dialogs.TorWarningDialog
 import com.blockstream.compose.dialogs.UrlWarningDialog
 import com.blockstream.compose.managers.rememberStateKeeperFactory
@@ -169,8 +170,9 @@ import com.blockstream.compose.screens.settings.WatchOnlyScreen
 import com.blockstream.compose.screens.support.SupportScreen
 import com.blockstream.compose.screens.swap.SwapScreen
 import com.blockstream.compose.screens.transaction.TransactionScreen
-import com.blockstream.compose.screens.walletabi.WalletAbiScanScreen
 import com.blockstream.compose.screens.walletabi.WalletAbiRequestScreen
+import com.blockstream.compose.screens.walletabi.WalletAbiScanScreen
+import com.blockstream.compose.screens.walletabi.WalletAbiSuccessScreen
 import com.blockstream.compose.screens.twofactor.ReEnable2FAScreen
 import com.blockstream.compose.sheets.AccountRenameBottomSheet
 import com.blockstream.compose.sheets.AccountsBottomSheet
@@ -408,6 +410,15 @@ fun Router(
                 WalletAbiRequestScreen(viewModel {
                     WalletAbiRequestViewModel(
                         greenWallet = args.greenWallet,
+                    )
+                })
+            }
+            appComposable<NavigateDestinations.WalletAbiSuccess> {
+                val args = it.toRoute<NavigateDestinations.WalletAbiSuccess>()
+                WalletAbiSuccessScreen(viewModel {
+                    WalletAbiSuccessViewModel(
+                        greenWallet = args.greenWallet,
+                        success = args.success,
                     )
                 })
             }

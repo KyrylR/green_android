@@ -29,7 +29,7 @@ class WalletAbiRequestViewModelTest {
     }
 
     @Test
-    fun approveTransactionEmitsSnackbarThenNavigateBack() = runTest {
+    fun approveTransactionEmitsSuccessThenNavigateBack() = runTest {
         val viewModel = WalletAbiRequestViewModelPreview.preview()
         val sideEffects = async {
             viewModel.sideEffect.take(2).toList()
@@ -38,8 +38,11 @@ class WalletAbiRequestViewModelTest {
         viewModel.approveTransaction()
 
         val emitted = sideEffects.await()
-        val snackbar = assertIs<SideEffects.Snackbar>(emitted[0])
-        assertEquals("Wallet ABI request approved", snackbar.text.fallbackString())
+        val success = assertIs<SideEffects.Success>(emitted[0])
+        assertEquals(
+            "Contract confirmed",
+            (success.data as com.blockstream.common.models.walletabi.WalletAbiSuccessLook).title,
+        )
         assertIs<SideEffects.NavigateBack>(emitted[1])
     }
 }

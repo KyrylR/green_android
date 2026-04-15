@@ -21,6 +21,7 @@ import blockstream_green.common.generated.resources.Res
 import blockstream_green.common.generated.resources.id_latest_transactions
 import blockstream_green.common.generated.resources.id_your_transactions_will_be_shown
 import com.blockstream.compose.GreenPreview
+import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
 import com.blockstream.compose.components.GreenCard
 import com.blockstream.compose.components.GreenColumn
 import com.blockstream.compose.components.GreenRow
@@ -52,6 +53,14 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun TransactScreen(viewModel: TransactViewModelAbstract) {
     NavigateDestinations.WalletAbiScan.getResult<ScanResult> {
         viewModel.handleWalletAbiScan(it.result)
+    }
+    NavigateDestinations.WalletAbiRequest.getResult<WalletAbiSuccessLook> {
+        viewModel.postEvent(
+            NavigateDestinations.WalletAbiSuccess(
+                greenWallet = viewModel.greenWallet,
+                success = it,
+            )
+        )
     }
 
     NavigateDestinations.Login.getResult<GreenWallet> {
