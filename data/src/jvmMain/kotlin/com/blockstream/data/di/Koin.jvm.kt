@@ -3,6 +3,8 @@ package com.blockstream.data.di
 import com.blockstream.data.database.DriverFactory
 import com.blockstream.data.managers.BluetoothManager
 import com.blockstream.data.managers.LocaleManager
+import com.blockstream.common.walletabi.NoopWalletAbiWalletConnectBridge
+import com.blockstream.common.walletabi.WalletAbiWalletConnectBridge
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.PreferencesSettings
 import org.koin.dsl.module
@@ -20,5 +22,5 @@ actual val platformModule = module {
         PreferencesSettings(preferences)
     }
     single<BluetoothManager> { BluetoothManager() }
+    single<WalletAbiWalletConnectBridge> { NoopWalletAbiWalletConnectBridge() }
 }
-

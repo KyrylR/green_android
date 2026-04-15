@@ -1,5 +1,7 @@
 package com.blockstream.data.di
 
+import com.blockstream.common.walletabi.NoopWalletAbiWalletConnectBridge
+import com.blockstream.common.walletabi.WalletAbiWalletConnectBridge
 import com.blockstream.data.CountlyBase
 import com.blockstream.data.CountlyIOS
 import com.blockstream.data.database.DriverFactory
@@ -23,4 +25,5 @@ actual val platformModule = module {
     single<ObservableSettings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults()) }
 
     single<BluetoothManager> { BluetoothManager() }
+    single<WalletAbiWalletConnectBridge> { NoopWalletAbiWalletConnectBridge() }
 }
