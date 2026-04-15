@@ -35,6 +35,22 @@ internal fun walletAbiOutputMatchesKnownWalletScript(
     return walletAbiOutputScriptCandidates(output).any { it in knownScripts }
 }
 
+internal fun walletAbiOutputMatchesKnownWalletAddress(
+    output: WalletAbiOutputSchema,
+    knownAddresses: Set<String>,
+): Boolean {
+    return walletAbiOutputAddressCandidates(output).any { it in knownAddresses }
+}
+
+private fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
+    val candidates = linkedSetOf<String>()
+    collectWalletAbiAddressCandidates(
+        element = output.lock,
+        into = candidates,
+    )
+    return candidates
+}
+
 private fun walletAbiOutputScriptCandidates(output: WalletAbiOutputSchema): Set<String> {
     val candidates = linkedSetOf<String>()
     collectWalletAbiScriptCandidates(
@@ -71,6 +87,43 @@ private fun collectWalletAbiScriptCandidates(
         is JsonArray -> {
             element.forEach { value ->
                 collectWalletAbiScriptCandidates(
+                    element = value,
+                    into = into,
+                )
+            }
+        }
+
+        else -> Unit
+    }
+}
+
+private fun collectWalletAbiAddressCandidates(
+    element: JsonElement,
+    into: MutableSet<String>,
+) {
+    when (element) {
+        is JsonObject -> {
+            element.forEach { (key, value) ->
+                if (key == "address" || key == "unblinded_address" || key == "unconfidential_address") {
+                    (value as? JsonPrimitive)
+                        ?.takeIf { it.isString }
+                        ?.content
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.lowercase()
+                        ?.let(into::add)
+                }
+
+                collectWalletAbiAddressCandidates(
+                    element = value,
+                    into = into,
+                )
+            }
+        }
+
+        is JsonArray -> {
+            element.forEach { value ->
+                collectWalletAbiAddressCandidates(
                     element = value,
                     into = into,
                 )

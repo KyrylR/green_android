@@ -475,6 +475,34 @@ class WalletAbiSupportTest {
     }
 
     @Test
+    fun walletAbiOutputMatchesKnownWalletAddressReadsNestedAddressCandidates() {
+        val output = externalOutputSchema().copy(
+            lock = buildJsonObject {
+                put("type", "address")
+                put(
+                    "recipient",
+                    buildJsonObject {
+                        put("unconfidential_address", "TEX1QWALLETADDRESS")
+                    },
+                )
+            },
+        )
+
+        assertTrue(
+            walletAbiOutputMatchesKnownWalletAddress(
+                output = output,
+                knownAddresses = setOf("tex1qwalletaddress"),
+            ),
+        )
+        assertFalse(
+            walletAbiOutputMatchesKnownWalletAddress(
+                output = output,
+                knownAddresses = setOf("tex1qsomeoneelse"),
+            ),
+        )
+    }
+
+    @Test
     fun walletAbiTxRequestWithResolvedOutputsPatchesDeferredOutputsAndScripts() {
         val request = txCreateRequest(
             outputs = listOf(
