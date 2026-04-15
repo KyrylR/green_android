@@ -1,5 +1,6 @@
 package com.blockstream.common.walletabi
 
+import com.blockstream.common.gdk.data.ValidateAddressees
 import com.blockstream.common.walletabi.transport.WalletAbiErrorInfo
 import com.blockstream.common.walletabi.transport.WalletAbiInputSchema
 import com.blockstream.common.walletabi.transport.WalletAbiNetwork
@@ -27,6 +28,7 @@ import lwk.Script
 import lwk.Txid
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -383,6 +385,65 @@ class WalletAbiSupportTest {
     @Test
     fun walletAbiResolvedOutputsFromTransactionHexRejectsMalformedHex() {
         assertTrue(walletAbiResolvedOutputsFromTransactionHex("not-a-transaction").isEmpty())
+    }
+
+    @Test
+    fun walletAbiValidatedAddresseeIndicatesWalletOwnershipNeedsWalletMetadata() {
+        assertTrue(
+            walletAbiValidatedAddresseeIndicatesWalletOwnership(
+                ValidateAddressees(
+                    addressees = listOf(
+                        buildJsonObject {
+                            put("address", "tex1qwallet")
+                            put("pointer", 7)
+                        },
+                    ),
+                    isValid = true,
+                ),
+            ),
+        )
+
+        assertTrue(
+            walletAbiValidatedAddresseeIndicatesWalletOwnership(
+                ValidateAddressees(
+                    addressees = listOf(
+                        buildJsonObject {
+                            put("address", "tex1qwallet")
+                            put("is_internal", true)
+                        },
+                    ),
+                    isValid = true,
+                ),
+            ),
+        )
+
+        assertFalse(
+            walletAbiValidatedAddresseeIndicatesWalletOwnership(
+                ValidateAddressees(
+                    addressees = listOf(
+                        buildJsonObject {
+                            put("address", "tex1qexternal")
+                            put("address_type", "p2wpkh")
+                        },
+                    ),
+                    isValid = true,
+                ),
+            ),
+        )
+
+        assertFalse(
+            walletAbiValidatedAddresseeIndicatesWalletOwnership(
+                ValidateAddressees(
+                    addressees = listOf(
+                        buildJsonObject {
+                            put("address", "tex1qwallet")
+                            put("pointer", 7)
+                        },
+                    ),
+                    isValid = false,
+                ),
+            ),
+        )
     }
 
     @Test
