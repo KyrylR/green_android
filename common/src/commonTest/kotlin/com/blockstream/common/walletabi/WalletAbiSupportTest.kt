@@ -503,6 +503,42 @@ class WalletAbiSupportTest {
     }
 
     @Test
+    fun walletAbiOutputMatchesKnownWalletDestinationMatchesKnownAddressOrScript() {
+        assertTrue(
+            walletAbiOutputMatchesKnownWalletDestination(
+                output = externalOutputSchema().copy(
+                    lock = buildJsonObject {
+                        put("type", "address")
+                        put("address", "tex1qwalletaddress")
+                    },
+                ),
+                knownDestinations = WalletAbiKnownDestinationLookup(
+                    addresses = setOf("tex1qwalletaddress"),
+                ),
+            ),
+        )
+        assertTrue(
+            walletAbiOutputMatchesKnownWalletDestination(
+                output = externalOutputSchema().copy(
+                    lock = buildJsonObject {
+                        put("type", "script")
+                        put("script", "0014feedface1234feedface1234feedface1234")
+                    },
+                ),
+                knownDestinations = WalletAbiKnownDestinationLookup(
+                    scripts = setOf("0014feedface1234feedface1234feedface1234"),
+                ),
+            ),
+        )
+        assertFalse(
+            walletAbiOutputMatchesKnownWalletDestination(
+                output = externalOutputSchema(),
+                knownDestinations = WalletAbiKnownDestinationLookup(),
+            ),
+        )
+    }
+
+    @Test
     fun walletAbiTxRequestWithResolvedOutputsPatchesDeferredOutputsAndScripts() {
         val request = txCreateRequest(
             outputs = listOf(
