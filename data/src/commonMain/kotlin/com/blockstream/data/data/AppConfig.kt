@@ -12,6 +12,7 @@ data class AppConfig(
     val greenlightKey: String? = null,
     val greenlightCert: String? = null,
     val zendeskClientId: String? = null,
+    val reownProjectId: String? = null,
     val analyticsFeatureEnabled: Boolean = true,
     val lightningFeatureEnabled: Boolean = true,
     val storeRateEnabled: Boolean = false
@@ -28,6 +29,26 @@ data class AppConfig(
         ): AppConfig {
             val appKeys: AppKeys? = appKeysString?.takeIf { it.isNotBlank() }?.let { AppKeys.fromText(it) }
 
+            return fromAppKeys(
+                isDebug = isDebug,
+                filesDir = filesDir,
+                cacheDir = cacheDir,
+                analyticsFeatureEnabled = analyticsFeatureEnabled,
+                lightningFeatureEnabled = lightningFeatureEnabled,
+                storeRateEnabled = storeRateEnabled,
+                appKeys = appKeys,
+            )
+        }
+
+        internal fun fromAppKeys(
+            isDebug: Boolean,
+            filesDir: String,
+            cacheDir: String,
+            analyticsFeatureEnabled: Boolean,
+            lightningFeatureEnabled: Boolean,
+            storeRateEnabled: Boolean,
+            appKeys: AppKeys?,
+        ): AppConfig {
             if (lightningFeatureEnabled && (appKeys?.greenlightCert == null || appKeys.greenlightKey == null || appKeys.breezApiKey == null)) {
                 logger.i { "Lightning Feature turned off" }
             }
@@ -40,6 +61,7 @@ data class AppConfig(
                 greenlightKey = appKeys?.greenlightKey,
                 greenlightCert = appKeys?.greenlightCert,
                 zendeskClientId = appKeys?.zendeskClientId,
+                reownProjectId = appKeys?.reownProjectId,
                 analyticsFeatureEnabled = analyticsFeatureEnabled,
                 lightningFeatureEnabled = lightningFeatureEnabled && appKeys?.greenlightCert != null,
                 storeRateEnabled = storeRateEnabled
