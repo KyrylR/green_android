@@ -115,7 +115,13 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
                                 )
                             }
                         } else {
-                            null
+                            {
+                                viewModel.postEvent(
+                                    NavigateDestinations.WalletAbiConnection(
+                                        greenWallet = viewModel.greenWallet,
+                                    )
+                                )
+                            }
                         },
                     )
                 }

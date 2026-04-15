@@ -93,6 +93,7 @@ import com.blockstream.common.models.sheets.RecoveryHelpViewModel
 import com.blockstream.common.models.sheets.TransactionDetailsViewModel
 import com.blockstream.common.models.support.SupportViewModel
 import com.blockstream.common.models.transaction.TransactionViewModel
+import com.blockstream.common.models.walletabi.WalletAbiConnectionViewModel
 import com.blockstream.common.models.walletabi.WalletAbiRequestViewModel
 import com.blockstream.common.models.walletabi.WalletAbiScanViewModel
 import com.blockstream.common.models.walletabi.WalletAbiSuccessViewModel
@@ -166,6 +167,7 @@ import com.blockstream.compose.screens.settings.WalletSettingsScreen
 import com.blockstream.compose.screens.settings.WatchOnlyScreen
 import com.blockstream.compose.screens.support.SupportScreen
 import com.blockstream.compose.screens.transaction.TransactionScreen
+import com.blockstream.compose.screens.walletabi.WalletAbiConnectionScreen
 import com.blockstream.compose.screens.walletabi.WalletAbiRequestScreen
 import com.blockstream.compose.screens.walletabi.WalletAbiScanScreen
 import com.blockstream.compose.screens.walletabi.WalletAbiSuccessScreen
@@ -389,6 +391,14 @@ fun Router(
                 val args = it.toRoute<NavigateDestinations.WalletAbiScan>()
                 WalletAbiScanScreen(viewModel {
                     WalletAbiScanViewModel(
+                        greenWallet = args.greenWallet,
+                    )
+                })
+            }
+            appComposable<NavigateDestinations.WalletAbiConnection> {
+                val args = it.toRoute<NavigateDestinations.WalletAbiConnection>()
+                WalletAbiConnectionScreen(viewModel {
+                    WalletAbiConnectionViewModel(
                         greenWallet = args.greenWallet,
                     )
                 })
