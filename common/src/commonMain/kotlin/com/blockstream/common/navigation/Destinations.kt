@@ -311,6 +311,11 @@ sealed class NavigateDestinations : NavigateDestination() {
     ) : NavigateDestination()
 
     @Serializable
+    data class WalletAbiScan(
+        val greenWallet: GreenWallet,
+    ) : NavigateDestination()
+
+    @Serializable
     data class AssetDetails(
         val greenWallet: GreenWallet,
         val assetId: String,
