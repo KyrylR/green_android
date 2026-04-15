@@ -1,5 +1,22 @@
 package com.blockstream.common.walletabi
 
+internal const val WALLET_ABI_WALLETCONNECT_NAMESPACE = "walabi"
+internal const val WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS = "get_signer_receive_address"
+internal const val WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY = "get_raw_signing_x_only_pubkey"
+internal const val WALLET_ABI_METHOD_PROCESS_REQUEST = "wallet_abi_process_request"
+
+internal val WALLET_ABI_WALLETCONNECT_METHODS = setOf(
+    WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS,
+    WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY,
+    WALLET_ABI_METHOD_PROCESS_REQUEST,
+)
+
+internal val WALLET_ABI_WALLETCONNECT_CHAINS = setOf(
+    "walabi:liquid",
+    "walabi:testnet-liquid",
+    "walabi:localtest-liquid",
+)
+
 private const val WALLET_ABI_ANDROID_ONLY_MESSAGE = "WalletConnect Wallet ABI is only available on Android"
 
 internal enum class WalletAbiSessionState {
