@@ -32,6 +32,9 @@ import com.blockstream.common.utils.feeRateWithUnit
 import com.blockstream.common.utils.formatFullWithTime
 import com.blockstream.common.utils.toAmountLook
 import com.blockstream.common.utils.toAmountLookOrNa
+import com.blockstream.common.walletabi.WalletAbiTransactionDetailsLook
+import com.blockstream.common.walletabi.WalletAbiTransactionStore
+import com.blockstream.common.walletabi.toDetailsLook
 import com.blockstream.green.utils.Loggable
 import com.blockstream.ui.events.Event
 import com.blockstream.ui.navigation.NavData
@@ -113,6 +116,9 @@ abstract class TransactionViewModelAbstract(
     
     @NativeCoroutinesState
     abstract val isMeldTransaction: StateFlow<Boolean>
+
+    @NativeCoroutinesState
+    abstract val walletAbiDetails: StateFlow<WalletAbiTransactionDetailsLook?>
 }
 
 class TransactionViewModel(transaction: Transaction, greenWallet: GreenWallet) :
@@ -133,6 +139,15 @@ class TransactionViewModel(transaction: Transaction, greenWallet: GreenWallet) :
     enum class LiquidShareType {
         CONFIDENTIAL_TRANSACTION, NON_CONFIDENTIAL_TRANSACTION, UNBLINDING_DATA;
     }
+
+    private val walletAbiTransactionStore = WalletAbiTransactionStore(
+        database = database,
+        json = Json {
+            encodeDefaults = true
+            explicitNulls = false
+            ignoreUnknownKeys = true
+        }
+    )
 
     private val _transaction = MutableStateFlow(transaction)
     override val transaction: StateFlow<Transaction> = _transaction
@@ -185,6 +200,9 @@ class TransactionViewModel(transaction: Transaction, greenWallet: GreenWallet) :
     private val _isMeldTransaction: MutableStateFlow<Boolean> = MutableStateFlow(transaction.isMeldPending())
     override val isMeldTransaction: StateFlow<Boolean> = _isMeldTransaction
 
+    private val _walletAbiDetails: MutableStateFlow<WalletAbiTransactionDetailsLook?> = MutableStateFlow(null)
+    override val walletAbiDetails: StateFlow<WalletAbiTransactionDetailsLook?> = _walletAbiDetails
+
     init {
         logger.d { "Transaction $transaction" }
 
@@ -220,6 +238,10 @@ class TransactionViewModel(transaction: Transaction, greenWallet: GreenWallet) :
                 updateData()
             }.launchIn(viewModelScope.coroutineScope)
         }
+
+        walletAbiTransactionStore.observe(greenWallet.id, transaction.txHash).onEach {
+            _walletAbiDetails.value = it?.toDetailsLook()
+        }.launchIn(viewModelScope.coroutineScope)
 
         bootstrap()
     }
@@ -424,6 +446,7 @@ class TransactionViewModelPreview(status: TransactionStatus) : TransactionViewMo
     override val hasMoreDetails: StateFlow<Boolean> = MutableStateFlow(true)
     override val isCloseChannel: StateFlow<Boolean> = MutableStateFlow(false)
     override val isMeldTransaction: StateFlow<Boolean> = MutableStateFlow(false)
+    override val walletAbiDetails: StateFlow<WalletAbiTransactionDetailsLook?> = MutableStateFlow(null)
 
     companion object {
         fun previewUnconfirmed() = TransactionViewModelPreview(Unconfirmed())

@@ -32,6 +32,7 @@ import blockstream_green.common.generated.resources.binoculars
 import blockstream_green.common.generated.resources.export
 import blockstream_green.common.generated.resources.gauge
 import blockstream_green.common.generated.resources.id_add_note
+import blockstream_green.common.generated.resources.id_asset
 import blockstream_green.common.generated.resources.id_closed_channel
 import blockstream_green.common.generated.resources.id_confidential_transaction
 import blockstream_green.common.generated.resources.id_edit_note
@@ -53,6 +54,7 @@ import blockstream_green.common.generated.resources.id_sent
 import blockstream_green.common.generated.resources.id_share
 import blockstream_green.common.generated.resources.id_share_transaction
 import blockstream_green.common.generated.resources.id_speed_up_transaction
+import blockstream_green.common.generated.resources.id_status
 import blockstream_green.common.generated.resources.id_swap
 import blockstream_green.common.generated.resources.id_swap_was_successfully_executed
 import blockstream_green.common.generated.resources.id_the_transaction_was
@@ -61,18 +63,25 @@ import blockstream_green.common.generated.resources.id_transaction_id
 import blockstream_green.common.generated.resources.id_transaction_is_awaiting_conf
 import blockstream_green.common.generated.resources.id_unblinding_data
 import blockstream_green.common.generated.resources.id_view_in_explorer
+import blockstream_green.common.generated.resources.id_warning
 import blockstream_green.common.generated.resources.id_your_transaction_failed_s
 import blockstream_green.common.generated.resources.id_your_transaction_was
+import blockstream_green.common.generated.resources.id_account
+import blockstream_green.common.generated.resources.id_network
 import blockstream_green.common.generated.resources.magnifying_glass
 import blockstream_green.common.generated.resources.pencil_simple_line
 import com.blockstream.common.data.MenuEntry
 import com.blockstream.common.data.MenuEntryList
 import com.blockstream.common.gdk.data.Transaction
 import com.blockstream.common.looks.transaction.Failed
+import com.blockstream.common.looks.transaction.TransactionStatus
 import com.blockstream.common.looks.transaction.Unconfirmed
 import com.blockstream.common.models.sheets.NoteType
 import com.blockstream.common.models.transaction.TransactionViewModel
 import com.blockstream.common.models.transaction.TransactionViewModelAbstract
+import com.blockstream.common.walletabi.WalletAbiTransactionDetailsLook
+import com.blockstream.common.walletabi.WalletAbiTransactionDetailsAssetLook
+import com.blockstream.common.walletabi.WalletAbiTransactionDetailsOutputLook
 import com.blockstream.common.navigation.NavigateDestinations
 import com.blockstream.compose.components.GreenAddress
 import com.blockstream.compose.components.GreenAmounts
@@ -196,6 +205,7 @@ fun TransactionScreen(
 
             val type by viewModel.type.collectAsStateWithLifecycle()
             val isCloseChannel by viewModel.isCloseChannel.collectAsStateWithLifecycle()
+            val walletAbiDetails by viewModel.walletAbiDetails.collectAsStateWithLifecycle()
             val message: String = when {
                 status is Unconfirmed -> stringResource(Res.string.id_transaction_is_awaiting_conf)
                 status is Failed -> stringResource(
@@ -222,41 +232,49 @@ fun TransactionScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-
-                if (!isMeldTransaction) {
-                    Text(text = status.title(), style = headlineSmall)
-                    Text(text = message, style = bodyMedium)
+                val walletAbiDetailsLook = walletAbiDetails
+                if (walletAbiDetailsLook != null) {
+                    WalletAbiTransactionHeader(
+                        walletAbiDetails = walletAbiDetailsLook,
+                        createdAt = createdAt,
+                        status = status,
+                        isMeldTransaction = isMeldTransaction,
+                    )
                 } else {
-                    Text(
-                        text = stringResource(Res.string.id_processing_payment),
-                        style = headlineSmall
-                    )
-                }
+                    if (!isMeldTransaction) {
+                        Text(text = status.title(), style = headlineSmall)
+                        Text(text = message, style = bodyMedium)
+                    } else {
+                        Text(
+                            text = stringResource(Res.string.id_processing_payment),
+                            style = headlineSmall
+                        )
+                    }
 
-                createdAt?.also {
-                    Text(text = it, style = bodyMedium, color = whiteMedium)
-                }
+                    createdAt?.also {
+                        Text(text = it, style = bodyMedium, color = whiteMedium)
+                    }
 
-                val typeRes = when {
-                    status is Unconfirmed && type == Transaction.Type.OUT -> Res.string.id_outgoing
-                    status is Unconfirmed && type == Transaction.Type.IN -> Res.string.id_incoming
-                    status is Unconfirmed && type == Transaction.Type.REDEPOSIT -> Res.string.id_redeposit
-                    isCloseChannel -> Res.string.id_closed_channel
-                    type == Transaction.Type.OUT -> Res.string.id_sent
-                    type == Transaction.Type.REDEPOSIT -> Res.string.id_redeposited
-                    type == Transaction.Type.MIXED -> Res.string.id_swap
-                    else -> Res.string.id_received
-                }
+                    val typeRes = when {
+                        status is Unconfirmed && type == Transaction.Type.OUT -> Res.string.id_outgoing
+                        status is Unconfirmed && type == Transaction.Type.IN -> Res.string.id_incoming
+                        status is Unconfirmed && type == Transaction.Type.REDEPOSIT -> Res.string.id_redeposit
+                        isCloseChannel -> Res.string.id_closed_channel
+                        type == Transaction.Type.OUT -> Res.string.id_sent
+                        type == Transaction.Type.REDEPOSIT -> Res.string.id_redeposited
+                        type == Transaction.Type.MIXED -> Res.string.id_swap
+                        else -> Res.string.id_received
+                    }
 
-                if (!isMeldTransaction) {
-                    Text(
-                        text = stringResource(typeRes),
-                        style = labelMedium,
-                        modifier = Modifier.clip(RoundedCornerShape(16.dp))
-                            .background(status.color()).padding(horizontal = 8.dp, vertical = 6.dp)
-                    )
+                    if (!isMeldTransaction) {
+                        Text(
+                            text = stringResource(typeRes),
+                            style = labelMedium,
+                            modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                                .background(status.color()).padding(horizontal = 8.dp, vertical = 6.dp)
+                        )
+                    }
                 }
-
             }
 
 
@@ -297,7 +315,15 @@ fun TransactionScreen(
             val note by viewModel.note.collectAsStateWithLifecycle()
             val canEditNote by viewModel.canEditNote.collectAsStateWithLifecycle()
 
-            if (listOfNotNull(fee, feeRate, address, transactionId, note).isNotEmpty()) {
+            val walletAbiDetailsLook = walletAbiDetails
+            if (walletAbiDetailsLook != null) {
+                HorizontalDivider()
+                WalletAbiTransactionDetailsSection(
+                    walletAbiDetails = walletAbiDetailsLook,
+                    transactionId = transactionId,
+                    note = note,
+                )
+            } else if (listOfNotNull(fee, feeRate, address, transactionId, note).isNotEmpty()) {
                 HorizontalDivider()
 
                 GreenColumn(space = 8, padding = 0, modifier = Modifier.padding(vertical = 32.dp)) {
@@ -446,6 +472,145 @@ fun TransactionScreen(
 }
 
 @Composable
+private fun WalletAbiTransactionHeader(
+    walletAbiDetails: WalletAbiTransactionDetailsLook,
+    createdAt: String?,
+    status: TransactionStatus,
+    isMeldTransaction: Boolean,
+) {
+    if (!isMeldTransaction) {
+        Text(text = walletAbiDetails.statusLabel, style = headlineSmall)
+        Text(text = walletAbiDetails.origin, style = bodyMedium)
+    } else {
+        Text(
+            text = stringResource(Res.string.id_processing_payment),
+            style = headlineSmall
+        )
+    }
+
+    createdAt?.also {
+        Text(text = it, style = bodyMedium, color = whiteMedium)
+    }
+
+    Text(
+        text = walletAbiDetails.network,
+        style = labelMedium,
+        modifier = Modifier.clip(RoundedCornerShape(16.dp))
+            .background(status.color())
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    )
+}
+
+@Composable
+private fun WalletAbiTransactionDetailsSection(
+    walletAbiDetails: WalletAbiTransactionDetailsLook,
+    transactionId: String?,
+    note: String?,
+) {
+    GreenColumn(
+        space = 12,
+        padding = 0,
+        modifier = Modifier.padding(vertical = 32.dp)
+    ) {
+        DetailText(label = "Origin") {
+            Text(text = walletAbiDetails.origin)
+        }
+        Detail(label = Res.string.id_network) {
+            Text(text = walletAbiDetails.network)
+        }
+        Detail(label = Res.string.id_account) {
+            Text(text = walletAbiDetails.accountName)
+        }
+        Detail(label = Res.string.id_status) {
+            Text(text = walletAbiDetails.statusMessage)
+        }
+
+        walletAbiDetails.assets.forEach { asset ->
+            WalletAbiAssetDetail(asset = asset)
+        }
+
+        if (walletAbiDetails.outputs.isNotEmpty()) {
+            DetailText(label = "Outputs") {
+                Column(horizontalAlignment = Alignment.End) {
+                    walletAbiDetails.outputs.forEach { output ->
+                        WalletAbiOutputDetail(output = output)
+                    }
+                }
+            }
+        }
+
+        if (walletAbiDetails.warnings.isNotEmpty()) {
+            Detail(label = Res.string.id_warning) {
+                Column {
+                    walletAbiDetails.warnings.forEach { warning ->
+                        Text(text = warning, style = bodySmall, color = whiteMedium)
+                    }
+                }
+            }
+        }
+
+        transactionId?.also {
+            Detail(label = Res.string.id_transaction_id) {
+                CopyContainer(value = it) {
+                    Text(
+                        text = it,
+                        fontFamily = MonospaceFont()
+                    )
+                }
+            }
+        }
+
+        AnimatedNullableVisibility(value = note) {
+            Detail(label = Res.string.id_note) {
+                CopyContainer(value = it) {
+                    Text(it)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WalletAbiAssetDetail(asset: WalletAbiTransactionDetailsAssetLook) {
+    Detail(label = Res.string.id_asset) {
+        Column(horizontalAlignment = Alignment.End) {
+            Text(text = asset.assetLabel, style = bodyMedium)
+            Text(text = asset.sentAway, style = bodyMedium, color = whiteHigh)
+            Text(text = asset.sentBackToWallet, style = bodySmall, color = whiteMedium)
+            asset.otherOutputs?.also {
+                Text(text = it, style = bodySmall, color = whiteMedium)
+            }
+            asset.exactNetWalletDelta?.also {
+                Text(text = it, style = bodySmall, color = whiteMedium)
+            }
+            asset.exactFee?.also {
+                Text(text = it, style = bodySmall, color = whiteMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WalletAbiOutputDetail(output: WalletAbiTransactionDetailsOutputLook) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.padding(bottom = 8.dp)
+    ) {
+        Text(
+            text = "${output.label} ${output.amount}",
+            style = bodyMedium,
+            textAlign = TextAlign.End,
+        )
+        Text(
+            text = output.detail,
+            style = bodySmall,
+            color = whiteMedium,
+            textAlign = TextAlign.End,
+        )
+    }
+}
+
+@Composable
 private fun Detail(
     modifier: Modifier = Modifier,
     label: StringResource,
@@ -458,6 +623,32 @@ private fun Detail(
     ) {
         Text(
             stringResource(label),
+            color = labelColor,
+            style = labelStyle,
+            modifier = Modifier.weight(1f)
+        )
+        Box(modifier = Modifier.weight(2f)) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DetailText(
+    modifier: Modifier = Modifier,
+    label: String,
+    labelColor: Color = whiteMedium,
+    labelStyle: TextStyle = bodyLarge,
+    content: @Composable () -> Unit
+) {
+    GreenRow(
+        padding = 0,
+        space = 8,
+        verticalAlignment = Alignment.Top,
+        modifier = modifier
+    ) {
+        Text(
+            text = label,
             color = labelColor,
             style = labelStyle,
             modifier = Modifier.weight(1f)
