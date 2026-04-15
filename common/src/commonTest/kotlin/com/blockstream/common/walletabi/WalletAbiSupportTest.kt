@@ -19,6 +19,12 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.test.runTest
 import lwk.Chain
+import lwk.OutPoint
+import lwk.PsetBuilder
+import lwk.PsetInputBuilder
+import lwk.PsetOutputBuilder
+import lwk.Script
+import lwk.Txid
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -327,6 +333,56 @@ class WalletAbiSupportTest {
         )
 
         assertTrue(walletAbiRequestNeedsResolution(request))
+    }
+
+    @Test
+    fun walletAbiResolvedOutputsFromTransactionHexReadsExplicitOutputs() {
+        val txHex = PsetBuilder.newV2().run {
+            addInput(
+                PsetInputBuilder.fromPrevout(
+                    OutPoint.fromParts(
+                        Txid.fromString("0000000000000000000000000000000000000000000000000000000000000001"),
+                        0u,
+                    ),
+                ).build(),
+            )
+            addOutput(
+                PsetOutputBuilder.newExplicit(
+                    scriptPubkey = Script("0014751e76e8199196d454941c45d1b3a323f1433bd6"),
+                    satoshi = 1_234u,
+                    asset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+                ).build(),
+            )
+            addOutput(
+                PsetOutputBuilder.newExplicit(
+                    scriptPubkey = Script("0014feedface1234feedface1234feedface1234feed"),
+                    satoshi = 4_321u,
+                    asset = "4f0d5ff8f2c8d9d6e28d208e65d1f9cf56d0b34b5f5b0df4f5eb80b600000002",
+                ).build(),
+            )
+            build().extractTx().toString()
+        }
+
+        val outputs = walletAbiResolvedOutputsFromTransactionHex(txHex)
+
+        assertEquals(
+            listOf(
+                WalletAbiResolvedTransactionOutput(
+                    assetId = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+                    scriptHex = "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+                ),
+                WalletAbiResolvedTransactionOutput(
+                    assetId = "4f0d5ff8f2c8d9d6e28d208e65d1f9cf56d0b34b5f5b0df4f5eb80b600000002",
+                    scriptHex = "0014feedface1234feedface1234feedface1234feed",
+                ),
+            ),
+            outputs,
+        )
+    }
+
+    @Test
+    fun walletAbiResolvedOutputsFromTransactionHexRejectsMalformedHex() {
+        assertTrue(walletAbiResolvedOutputsFromTransactionHex("not-a-transaction").isEmpty())
     }
 
     @Test
