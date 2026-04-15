@@ -3,12 +3,15 @@ package com.blockstream.common.di
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import androidx.preference.PreferenceManager
+import com.blockstream.common.data.AppConfig
 import com.blockstream.common.crypto.GreenKeystore
 import com.blockstream.common.database.DriverFactory
 import com.blockstream.common.managers.BluetoothManager
 import com.blockstream.common.managers.LocaleManager
 import com.blockstream.common.managers.SettingsManager
 import com.blockstream.common.utils.AndroidKeystore
+import com.blockstream.common.walletabi.AndroidWalletAbiWalletConnectBridge
+import com.blockstream.common.walletabi.WalletAbiWalletConnectBridge
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
 import org.koin.android.ext.koin.androidContext
@@ -39,4 +42,10 @@ actual val platformModule: Module = module {
 
     single<BluetoothAdapter?> { (androidContext().getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager)?.adapter }
     single<BluetoothManager> { BluetoothManager(androidContext(), null) }
+    single<WalletAbiWalletConnectBridge> {
+        AndroidWalletAbiWalletConnectBridge(
+            application = androidContext().applicationContext as android.app.Application,
+            appConfig = get<AppConfig>(),
+        )
+    }
 }

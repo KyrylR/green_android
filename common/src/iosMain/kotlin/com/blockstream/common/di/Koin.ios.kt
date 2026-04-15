@@ -14,6 +14,8 @@ import com.blockstream.common.fcm.Firebase
 import com.blockstream.common.lightning.BreezNotification
 import com.blockstream.common.managers.*
 import com.blockstream.common.managers.DeviceManager.Companion.JADE
+import com.blockstream.common.walletabi.NoopWalletAbiWalletConnectBridge
+import com.blockstream.common.walletabi.WalletAbiWalletConnectBridge
 import com.blockstream.green.data.config.AppInfo
 import com.blockstream.green.data.notifications.models.MeldNotificationData
 import com.russhwolf.settings.NSUserDefaultsSettings
@@ -38,6 +40,7 @@ actual val platformModule = module {
     single<ObservableSettings> { NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults()) }
 
     single<BluetoothManager> { BluetoothManager() }
+    single<WalletAbiWalletConnectBridge> { NoopWalletAbiWalletConnectBridge() }
 }
 
 @OptIn(ExperimentalForeignApi::class)
