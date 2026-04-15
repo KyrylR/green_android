@@ -1,6 +1,9 @@
 package com.blockstream.common.walletabi
 
 import com.blockstream.common.gdk.data.Address
+import com.blockstream.common.gdk.data.Account
+import com.blockstream.common.gdk.data.AccountType
+import com.blockstream.common.gdk.data.Network
 import com.blockstream.common.gdk.data.PreviousAddresses
 import com.blockstream.common.gdk.data.ValidateAddressees
 import com.blockstream.common.walletabi.transport.WalletAbiErrorInfo
@@ -620,6 +623,138 @@ class WalletAbiSupportTest {
             "0014feedface1234feedface1234feedface1234",
             resolved.params.outputs[1].lock.jsonObject.getValue("script").jsonPrimitive.content,
         )
+    }
+
+    @Test
+    fun aggregateWalletAbiResolvedOutputImpactsPrioritizesPolicyAsset() {
+        val impacts = aggregateWalletAbiResolvedOutputImpacts(
+            outputs = listOf(
+                WalletAbiResolvedOutputReview(
+                    assetId = "issued-asset",
+                    amountSat = 500L,
+                    classification = WalletAbiOutputClassification.EXTERNAL,
+                    detail = "External",
+                ),
+                WalletAbiResolvedOutputReview(
+                    assetId = "policy-asset",
+                    amountSat = 200L,
+                    classification = WalletAbiOutputClassification.WALLET_RECEIVE,
+                    detail = "Wallet",
+                ),
+            ),
+            policyAssetId = "policy-asset",
+        )
+
+        assertEquals(
+            listOf("policy-asset", "issued-asset"),
+            impacts.map { it.assetId },
+        )
+    }
+
+    @Test
+    fun buildWalletAbiInputSourceSummaryCountsWalletExternalAndOtherInputs() {
+        val summary = buildWalletAbiInputSourceSummary(
+            inputs = listOf(
+                WalletAbiInputSchema(
+                    id = "wallet-1",
+                    utxoSource = buildJsonObject { put("type", "wallet") },
+                    unblinding = buildJsonObject { put("type", "wallet") },
+                    sequence = 1L,
+                    finalizer = buildJsonObject { put("type", "wallet") },
+                ),
+                WalletAbiInputSchema(
+                    id = "external-1",
+                    utxoSource = buildJsonObject { put("type", "outpoint") },
+                    unblinding = buildJsonObject { put("type", "wallet") },
+                    sequence = 2L,
+                    finalizer = buildJsonObject { put("type", "wallet") },
+                ),
+                WalletAbiInputSchema(
+                    id = "other-1",
+                    utxoSource = buildJsonObject { put("type", "something-else") },
+                    unblinding = buildJsonObject { put("type", "wallet") },
+                    sequence = 3L,
+                    finalizer = buildJsonObject { put("type", "wallet") },
+                ),
+            ),
+        )
+
+        assertEquals(
+            WalletAbiInputSourceSummaryLook(
+                walletSelectedInputCount = 1,
+                explicitExternalInputCount = 1,
+                otherInputCount = 1,
+            ),
+            summary,
+        )
+        assertTrue(summary.hasExplicitExternalInputs)
+    }
+
+    @Test
+    fun buildWalletAbiTransactionReviewBuildsOutputWarningsAndImpactAssets() = runTest {
+        val account = Account(
+            networkInjected = Network(
+                network = Network.GreenTestnetLiquid,
+                name = "Liquid Testnet",
+                isMainnet = false,
+                isLiquid = true,
+                isDevelopment = false,
+                policyAsset = "policy-asset",
+            ),
+            gdkName = "Account 1",
+            pointer = 0,
+            type = AccountType.BIP84_SEGWIT,
+        )
+        val txRequest = txCreateRequest(
+            outputs = listOf(
+                externalOutputSchema(
+                    assetId = "policy-asset",
+                    amountSat = 1_000L,
+                ),
+                walletOutputSchema(
+                    assetId = "policy-asset",
+                    amountSat = 200L,
+                ),
+                WalletAbiOutputSchema(
+                    id = "burn-1",
+                    amountSat = 50L,
+                    lock = buildJsonObject {
+                        put("type", "script")
+                        put("script", "6a0bdeadbeef")
+                    },
+                    asset = buildJsonObject {
+                        put("asset_id", "policy-asset")
+                    },
+                    blinder = buildJsonObject {
+                        put("type", "wallet")
+                    },
+                ),
+            ),
+        )
+
+        val review = buildWalletAbiTransactionReview(
+            origin = "example.app",
+            txRequest = txRequest,
+            accounts = listOf(account),
+            selectedAccount = account,
+            resolutionState = WalletAbiResolutionState.NOT_REQUIRED,
+            amountFormatter = { amountSat, assetId, _ -> "$amountSat:$assetId" },
+            assetLabelResolver = { assetId, _ -> assetId },
+            exactImpactPreview = WalletAbiImpactPreviewResult(
+                state = WalletAbiExactImpactState.REQUEST_DERIVED,
+            ),
+        )
+
+        assertEquals("example.app", review.origin)
+        assertEquals("req-1", review.requestId)
+        assertEquals("liquid", review.network)
+        assertEquals(3, review.outputs.size)
+        assertEquals(1, review.impactAssets.size)
+        assertEquals("1000:policy-asset", review.impactAssets.first().sentAway)
+        assertEquals("200:policy-asset", review.impactAssets.first().sentBackToWallet)
+        assertEquals("50:policy-asset", review.impactAssets.first().otherOutputs)
+        assertTrue(review.warnings.any { it.contains("sign and broadcast", ignoreCase = true) })
+        assertTrue(review.warnings.any { it.contains("OP_RETURN", ignoreCase = true) })
     }
 
     private fun walletOutputSchema(
