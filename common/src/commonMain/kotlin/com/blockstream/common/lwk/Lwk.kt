@@ -77,12 +77,12 @@ class Lwk(
                     val boltzSessionBuilder = BoltzSessionBuilder(
                         network = network,
                         client = AnyClient.fromElectrum(client),
-                        timeout = 30.toULong(),
+                        timeout = 30uL,
                         mnemonic = mnemonic,
                         referralId = "blockstream",
                         logging = this@Lwk,
                         polling = true,
-                        timeoutAdvance = 10.toULong()
+                        timeoutAdvance = 10uL
                     )
 
                     retry(fullJitterBackoff(min = 1_000, max = 30_000)) {
@@ -344,5 +344,4 @@ class Lwk(
         const val DEV_BASE_URL = "https://green-webhooks.dev.blockstream.com/"
     }
 }
-
 

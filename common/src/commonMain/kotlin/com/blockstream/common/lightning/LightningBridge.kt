@@ -511,7 +511,7 @@ class LightningBridge constructor(
                 PrepareOnchainPaymentRequest(
                     amount,
                     SwapAmountType.SEND,
-                    satPerVbyte ?: 10.toUInt()
+                    satPerVbyte ?: 10u
                 )
             )
 
