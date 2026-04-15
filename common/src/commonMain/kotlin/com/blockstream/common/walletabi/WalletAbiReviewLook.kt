@@ -36,21 +36,25 @@ import com.blockstream.common.utils.toAmountLook
 import com.blockstream.common.walletabi.transport.WalletAbiInputSchema
 import com.blockstream.common.walletabi.transport.WalletAbiOutputSchema
 import com.blockstream.common.walletabi.transport.WalletAbiTxCreateRequest
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 
+@Serializable
 internal data class WalletAbiAccountOptionLook(
     val id: String,
     val name: String,
 )
 
+@Serializable
 internal data class WalletAbiInputReviewLook(
     val label: String,
     val detail: String,
 )
 
+@Serializable
 internal data class WalletAbiInputSourceSummaryLook(
     val walletSelectedInputCount: Int,
     val explicitExternalInputCount: Int,
@@ -60,6 +64,7 @@ internal data class WalletAbiInputSourceSummaryLook(
         get() = explicitExternalInputCount > 0
 }
 
+@Serializable
 internal enum class WalletAbiExactImpactState {
     REQUEST_DERIVED,
     PENDING,
@@ -67,12 +72,14 @@ internal enum class WalletAbiExactImpactState {
     UNAVAILABLE,
 }
 
+@Serializable
 internal enum class WalletAbiResolutionState {
     NOT_REQUIRED,
     REQUIRED,
     RESOLVED,
 }
 
+@Serializable
 internal data class WalletAbiImpactAssetLook(
     val assetId: String,
     val assetLabel: String,
@@ -83,12 +90,14 @@ internal data class WalletAbiImpactAssetLook(
     val exactNetWalletDelta: String? = null,
 )
 
+@Serializable
 internal data class WalletAbiCompactImpactSummaryLook(
     val sentAway: String,
     val sentBackToWallet: String,
     val additionalAssetCount: Int,
 )
 
+@Serializable
 internal data class WalletAbiOutputReviewLook(
     val label: String,
     val amount: String,
@@ -96,6 +105,7 @@ internal data class WalletAbiOutputReviewLook(
     val classification: WalletAbiOutputClassification,
 )
 
+@Serializable
 internal data class WalletAbiTransactionReviewLook(
     val origin: String,
     val requestId: String,
