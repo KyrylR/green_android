@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import lwk.Chain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -197,5 +198,59 @@ class WalletAbiSupportTest {
                 asset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
             ).toExplicitTxOutOrNull(),
         )
+    }
+
+    @Test
+    fun walletAbiDerivationPathPrefersExactUserPath() {
+        val derivationPath = walletAbiDerivationPath(
+            accountDerivationPath = listOf(2147483732L, 2147485424L, 2147483648L),
+            io = com.blockstream.common.gdk.data.InputOutput(
+                userPath = listOf(2147483732L, 2147485424L, 2147483648L, 1L, 12L),
+            ),
+        )
+
+        assertEquals(
+            listOf(2147483732u, 2147485424u, 2147483648u, 1u, 12u),
+            derivationPath,
+        )
+    }
+
+    @Test
+    fun walletAbiDerivationPathFallsBackToAccountPathAndChangeFlags() {
+        val derivationPath = walletAbiDerivationPath(
+            accountDerivationPath = listOf(2147483732L, 2147485424L, 2147483648L),
+            io = com.blockstream.common.gdk.data.InputOutput(
+                isInternal = true,
+                pointer = 7,
+            ),
+        )
+
+        assertEquals(
+            listOf(2147483732u, 2147485424u, 2147483648u, 1u, 7u),
+            derivationPath,
+        )
+        assertEquals(
+            WalletAbiOutputDerivation(
+                chain = Chain.INTERNAL,
+                wildcardIndex = 7u,
+            ),
+            com.blockstream.common.gdk.data.InputOutput(
+                isInternal = true,
+                pointer = 7,
+            ).toWalletAbiDerivation(),
+        )
+    }
+
+    @Test
+    fun walletAbiExplicitTxOutFallsBackToPolicyAsset() {
+        val txOut = com.blockstream.common.gdk.data.InputOutput(
+            scriptPubkey = "0014751e76e8199196d454941c45d1b3a323f1433bd6",
+            satoshi = 42L,
+        ).toWalletAbiExplicitTxOutOrNull(
+            policyAsset = "5ac9f65c6cbeca7c9c0f74c684e1e4e79d7bb7aa6fe8f5a3303ad42d00000001",
+        )
+
+        assertNotNull(txOut)
+        assertEquals("0014751e76e8199196d454941c45d1b3a323f1433bd6", txOut.scriptPubkey().toString())
     }
 }
