@@ -5,11 +5,13 @@ import com.blockstream.common.data.WalletSerializable
 import com.blockstream.common.gdk.GdkSession
 import com.blockstream.common.managers.SettingsManager
 import com.blockstream.common.managers.WalletSettingsManager
+import com.blockstream.common.walletabi.transport.WalletAbiNetwork
 import com.russhwolf.settings.PreferencesSettings
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import lwk.Network as LwkNetwork
 import java.util.prefs.Preferences
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,6 +50,8 @@ class WalletAbiSessionCoordinatorStateTest {
         )
         val coordinator = WalletAbiSessionCoordinator(
             json = json,
+            executionContextResolver = FakeExecutionContextResolver(),
+            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
             walletSettingsManager = walletSettingsManager,
             walletConnectBridge = bridge,
         )
@@ -82,6 +86,8 @@ class WalletAbiSessionCoordinatorStateTest {
         )
         val coordinator = WalletAbiSessionCoordinator(
             json = json,
+            executionContextResolver = FakeExecutionContextResolver(),
+            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
             walletSettingsManager = walletSettingsManager,
             walletConnectBridge = FakeWalletAbiWalletConnectBridge(),
         )
@@ -197,4 +203,68 @@ private class FakeWalletAbiWalletConnectBridge(
     override suspend fun respondError(topic: String, requestId: Long, code: Int, message: String) = Unit
 
     override suspend fun disconnect(topic: String) = Unit
+}
+
+internal class FakeExecutionContextResolver : WalletAbiExecutionContextResolving {
+    override suspend fun resolveDirect(
+        session: GdkSession,
+        requestNetwork: WalletAbiNetwork,
+        preferredAccountId: String?,
+    ): WalletAbiExecutionContext {
+        return context(session, requestNetwork)
+    }
+
+    override suspend fun resolveSessionRequest(
+        incoming: GdkSession,
+        requestNetwork: WalletAbiNetwork,
+        preferredAccountId: String?,
+    ): WalletAbiExecutionContext {
+        return context(incoming, requestNetwork)
+    }
+
+    private fun context(
+        session: GdkSession,
+        requestNetwork: WalletAbiNetwork,
+    ): WalletAbiExecutionContext {
+        val account = com.blockstream.common.gdk.data.Account(
+            networkInjected = com.blockstream.common.gdk.data.Network(
+                network = com.blockstream.common.gdk.data.Network.GreenTestnetLiquid,
+                name = "Liquid Testnet",
+                isMainnet = false,
+                isLiquid = true,
+                isDevelopment = false,
+                policyAsset = "policy-asset",
+            ),
+            gdkName = "Account 1",
+            pointer = 0,
+            type = com.blockstream.common.gdk.data.AccountType.BIP84_SEGWIT,
+        )
+        return WalletAbiExecutionContext(
+            session = session,
+            requestNetwork = requestNetwork,
+            accounts = listOf(account),
+            primaryAccount = account,
+            lwkNetwork = LwkNetwork.testnet(),
+            signerKind = WalletAbiSignerKind.SOFTWARE,
+        )
+    }
+}
+
+internal class FakeWalletAbiProviderRunner : WalletAbiProviderRunning {
+    override suspend fun run(
+        context: WalletAbiExecutionContext,
+        request: com.blockstream.common.walletabi.transport.WalletAbiTxCreateRequest,
+        requestJson: String,
+    ): WalletAbiProviderRunResult {
+        error("Not used in these tests")
+    }
+
+    override suspend fun runJsonRpcRequest(
+        context: WalletAbiExecutionContext,
+        requestEnvelopeJson: String,
+    ): WalletAbiProviderJsonRpcRunResult {
+        return WalletAbiProviderJsonRpcRunResult(
+            resultJson = """{"raw_signing_x_only_pubkey":"0123abcd"}""",
+        )
+    }
 }
