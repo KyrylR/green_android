@@ -5,11 +5,13 @@ import androidx.compose.ui.Modifier
 import blockstream_green.common.generated.resources.Res
 import blockstream_green.common.generated.resources.id_buy
 import blockstream_green.common.generated.resources.id_receive
+import blockstream_green.common.generated.resources.id_scan_qr_code
 import blockstream_green.common.generated.resources.id_send
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLineDown
 import com.adamglin.phosphoricons.regular.ArrowLineUp
+import com.adamglin.phosphoricons.regular.QrCode
 import com.adamglin.phosphoricons.regular.ShoppingCart
 import com.blockstream.ui.components.GreenRow
 
@@ -20,6 +22,7 @@ fun TransactionActionButtons(
     onBuy: () -> Unit,
     onSend: () -> Unit,
     onReceive: () -> Unit,
+    onScan: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     GreenRow(
@@ -47,5 +50,13 @@ fun TransactionActionButtons(
             icon = PhosphorIcons.Regular.ArrowLineDown,
             onClick = onReceive
         )
+
+        onScan?.also { onScanClick ->
+            GreenActionButton(
+                text = Res.string.id_scan_qr_code,
+                icon = PhosphorIcons.Regular.QrCode,
+                onClick = onScanClick
+            )
+        }
     }
 }

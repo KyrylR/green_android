@@ -5,6 +5,15 @@ import com.blockstream.common.usecases.EnableHardwareWatchOnlyUseCase
 import com.blockstream.common.usecases.SetBiometricsUseCase
 import com.blockstream.common.usecases.SetPinUseCase
 import com.blockstream.common.utils.WatchOnlyDetector
+import com.blockstream.common.walletabi.NoopWalletAbiImpactPreviewer
+import com.blockstream.common.walletabi.WalletAbiEsploraHttpClient
+import com.blockstream.common.walletabi.WalletAbiExecutionContextResolver
+import com.blockstream.common.walletabi.WalletAbiImpactPreviewing
+import com.blockstream.common.walletabi.WalletAbiProcessor
+import com.blockstream.common.walletabi.WalletAbiProviderRunner
+import com.blockstream.common.walletabi.WalletAbiResultPresenter
+import com.blockstream.common.walletabi.WalletAbiSessionCoordinator
+import com.blockstream.common.walletabi.WalletAbiTransactionStore
 import com.blockstream.domain.account.accountModule
 import com.blockstream.domain.banner.GetBannerUseCase
 import com.blockstream.domain.bitcoinpricehistory.ObserveBitcoinPriceHistory
@@ -18,7 +27,10 @@ import com.blockstream.domain.receive.receiveModule
 import com.blockstream.domain.send.sendModule
 import com.blockstream.domain.wallet.walletModule
 import com.blockstream.green.data.dataModule
+import com.blockstream.green.data.json.DefaultJson
 import com.blockstream.green.domain.domainModule
+import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 //At some point we'll move this to domain module.
@@ -77,5 +89,54 @@ val commonModule = module {
     }
     single {
         GetPromoUseCase(get(), get(), get())
+    }
+    single(named("walletAbiJson")) {
+        Json(DefaultJson) {
+            explicitNulls = false
+        }
+    }
+    single {
+        WalletAbiExecutionContextResolver(get())
+    }
+    single {
+        WalletAbiEsploraHttpClient(get())
+    }
+    single {
+        WalletAbiProviderRunner(
+            json = get(named("walletAbiJson")),
+            esploraHttpClient = get(),
+        )
+    }
+    single {
+        WalletAbiProcessor(
+            json = get(named("walletAbiJson")),
+            executionContextResolver = get(),
+            providerRunner = get(),
+        )
+    }
+    single<WalletAbiImpactPreviewing> {
+        NoopWalletAbiImpactPreviewer()
+    }
+    single {
+        WalletAbiResultPresenter()
+    }
+    single {
+        WalletAbiTransactionStore(
+            database = get(),
+            json = get(named("walletAbiJson")),
+        )
+    }
+    single {
+        WalletAbiSessionCoordinator(
+            json = get(named("walletAbiJson")),
+            executionContextResolver = get(),
+            walletAbiImpactPreviewer = get(),
+            walletAbiProcessor = get(),
+            walletAbiResultPresenter = get(),
+            walletAbiProviderRunner = get(),
+            walletSettingsManager = get(),
+            walletConnectBridge = get(),
+            walletAbiTransactionStore = get(),
+        )
     }
 }

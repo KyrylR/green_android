@@ -19,26 +19,39 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import blockstream_green.common.generated.resources.Res
 import blockstream_green.common.generated.resources.id_latest_transactions
 import blockstream_green.common.generated.resources.id_your_transactions_will_be_shown
+import com.blockstream.common.data.ScanResult
 import com.blockstream.common.events.Events
 import com.blockstream.common.models.overview.TransactViewModelAbstract
 import com.blockstream.common.navigation.NavigateDestinations
+import com.blockstream.common.walletabi.WalletAbiTransactCardLook
+import com.blockstream.compose.components.GreenCard
 import com.blockstream.compose.components.GreenTransaction
 import com.blockstream.compose.components.ListHeader
 import com.blockstream.compose.components.TransactionActionButtons
 import com.blockstream.compose.components.WalletBalance
 import com.blockstream.compose.theme.bodyMedium
+import com.blockstream.compose.theme.labelLarge
+import com.blockstream.compose.theme.titleSmall
+import com.blockstream.compose.theme.whiteMedium
 import com.blockstream.compose.utils.SetupScreen
+import com.blockstream.ui.components.GreenColumn
+import com.blockstream.ui.components.GreenRow
 import com.blockstream.ui.navigation.LocalInnerPadding
+import com.blockstream.ui.navigation.getResult
 import com.blockstream.ui.utils.bottom
 import com.blockstream.ui.utils.plus
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TransactScreen(viewModel: TransactViewModelAbstract) {
+    NavigateDestinations.WalletAbiScan.getResult<ScanResult> {
+        viewModel.handleWalletAbiScan(it.result)
+    }
 
     SetupScreen(viewModel = viewModel, withPadding = false, withBottomInsets = false) {
 
         val transactions by viewModel.transactions.collectAsStateWithLifecycle()
+        val walletAbiCard by viewModel.walletAbiCard.collectAsStateWithLifecycle()
         val isMultisigWatchOnly by viewModel.isMultisigWatchOnly.collectAsStateWithLifecycle()
         val innerPadding = LocalInnerPadding.current
         val listState = rememberLazyListState()
@@ -67,8 +80,24 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
                             )
                         )
                     },
+                    onScan = {
+                        viewModel.postEvent(
+                            NavigateDestinations.WalletAbiScan(
+                                greenWallet = viewModel.greenWallet,
+                            )
+                        )
+                    },
                     modifier = Modifier.padding(top = 16.dp)
                 )
+            }
+
+            walletAbiCard?.also { card ->
+                item(key = "WalletAbiCard") {
+                    WalletAbiPendingRequestCard(
+                        card = card,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                }
             }
 
             item(key = "TransactionsHeader") {
@@ -102,6 +131,56 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
                     viewModel.postEvent(Events.Transaction(transaction = it.transaction))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WalletAbiPendingRequestCard(
+    card: WalletAbiTransactCardLook,
+    modifier: Modifier = Modifier,
+) {
+    GreenCard(
+        modifier = modifier,
+        padding = 16,
+    ) {
+        GreenColumn(
+            padding = 0,
+            space = 8,
+        ) {
+            GreenRow(
+                padding = 0,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                GreenColumn(
+                    padding = 0,
+                    space = 4,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    androidx.compose.material3.Text(
+                        text = card.title,
+                        style = titleSmall,
+                    )
+                    card.subtitle?.also { subtitle ->
+                        androidx.compose.material3.Text(
+                            text = subtitle,
+                            style = bodyMedium,
+                            color = whiteMedium,
+                        )
+                    }
+                }
+
+                androidx.compose.material3.Text(
+                    text = card.statusLabel,
+                    style = labelLarge,
+                )
+            }
+
+            androidx.compose.material3.Text(
+                text = card.body,
+                style = bodyMedium,
+                color = whiteMedium,
+            )
         }
     }
 }
