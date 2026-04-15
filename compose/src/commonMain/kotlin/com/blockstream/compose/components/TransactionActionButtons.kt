@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import blockstream_green.common.generated.resources.Res
 import blockstream_green.common.generated.resources.id_buy
 import blockstream_green.common.generated.resources.id_receive
+import blockstream_green.common.generated.resources.id_scan_qr_code
 import blockstream_green.common.generated.resources.id_send
 import blockstream_green.common.generated.resources.id_swap
 import com.adamglin.PhosphorIcons
@@ -12,13 +13,13 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLineDown
 import com.adamglin.phosphoricons.regular.ArrowLineUp
 import com.adamglin.phosphoricons.regular.ArrowsDownUp
+import com.adamglin.phosphoricons.regular.QrCode
 import com.adamglin.phosphoricons.regular.ShoppingCart
 import com.blockstream.compose.GreenPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun TransactionActionButtons(
-    modifier: Modifier = Modifier,
     showBuyButton: Boolean,
     showSwapButton: Boolean,
     isSendEnabled: Boolean,
@@ -26,6 +27,8 @@ fun TransactionActionButtons(
     onSend: () -> Unit,
     onReceive: () -> Unit,
     onSwap: () -> Unit,
+    onScan: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     GreenRow(
         space = 8,
@@ -60,6 +63,14 @@ fun TransactionActionButtons(
                 onClick = onSwap
             )
         }
+
+        onScan?.also { onScanClick ->
+            GreenActionButton(
+                text = Res.string.id_scan_qr_code,
+                icon = PhosphorIcons.Regular.QrCode,
+                onClick = onScanClick
+            )
+        }
     }
 }
 
@@ -74,7 +85,8 @@ fun TransactionActionButtonsPreview() {
             onBuy = { },
             onSend = { },
             onReceive = { },
-            onSwap = { }
+            onSwap = { },
+            onScan = { }
         )
     }
 }

@@ -9,7 +9,11 @@ import com.blockstream.compose.extensions.previewWallet
 import com.blockstream.compose.looks.transaction.TransactionLook
 import com.blockstream.compose.navigation.NavData
 import com.blockstream.compose.navigation.NavigateDestinations
+import com.blockstream.compose.sideeffects.SideEffects
+import com.blockstream.common.walletabi.WalletAbiSessionCoordinator
+import com.blockstream.common.walletabi.WalletAbiTransactCardLook
 import com.blockstream.common.walletabi.WalletAbiTransactionStore
+import com.blockstream.common.walletabi.toTransactCardLook
 import com.blockstream.data.data.DataState
 import com.blockstream.data.data.GreenWallet
 import com.blockstream.data.extensions.ifConnected
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -48,6 +53,8 @@ abstract class TransactViewModelAbstract(
     abstract val isSwapAvailable: Boolean
 
     abstract val transactions: StateFlow<DataState<List<TransactionLook>>>
+
+    abstract val walletAbiCard: StateFlow<WalletAbiTransactCardLook?>
 
     fun onBuy() {
         postEvent(NavigateDestinations.Buy(greenWallet = greenWallet))
@@ -70,12 +77,15 @@ abstract class TransactViewModelAbstract(
             }
         }
     }
+
+    abstract fun handleWalletAbiScan(input: String)
 }
 
 class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(greenWallet = greenWallet) {
 
     private val isSwapAvailableUseCase: IsSwapAvailableUseCase by inject()
     private val getPendingMeldTransactions: GetPendingMeldTransactions by inject()
+    private val walletAbiSessionCoordinator: WalletAbiSessionCoordinator by inject()
     private val walletAbiTransactionStore = WalletAbiTransactionStore(
         database = database,
         json = Json {
@@ -94,7 +104,8 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
 
     private val _meldTransactions: StateFlow<List<Transaction>> = greenWallet.xPubHashId.let {
         combine(
-            getPendingMeldTransactions.observe(), session.accounts
+            getPendingMeldTransactions.observe(),
+            session.accounts,
         ) { result, accounts ->
             when (result) {
                 is Result.Success -> {
@@ -139,9 +150,9 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), DataState.Loading)
 
-    // Re-calculate if needed (hideAmount or denomination & exchange rate change)
     override val transactions: StateFlow<DataState<List<TransactionLook>>> = combine(
-        hideAmounts, _transactions
+        hideAmounts,
+        _transactions,
     ) { hideAmounts, transactionsLooks ->
         if (transactionsLooks is DataState.Success && hideAmounts) {
             DataState.Success(transactionsLooks.data.map { it.asMasked })
@@ -149,6 +160,11 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
             transactionsLooks
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), DataState.Loading)
+
+    override val walletAbiCard: StateFlow<WalletAbiTransactCardLook?> =
+        walletAbiSessionCoordinator.state(greenWallet.id)
+            .map { it.toTransactCardLook() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), null)
 
     init {
         greenWalletFlow.filterNotNull().onEach {
@@ -160,6 +176,13 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
         }
 
         getPendingMeldTransactions()
+
+        viewModelScope.launch {
+            walletAbiSessionCoordinator.bind(
+                greenWallet = greenWallet,
+                session = session,
+            )
+        }
 
         startPeriodicRefresh()
 
@@ -181,9 +204,28 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
             viewModelScope.launch {
                 getPendingMeldTransactions(
                     GetPendingMeldTransactions.Params(
-                        externalCustomerId = xPubHashId
-                    )
+                        externalCustomerId = xPubHashId,
+                    ),
                 )
+            }
+        }
+    }
+
+    override fun handleWalletAbiScan(input: String) {
+        val pairingInput = input.trim()
+        if (pairingInput.isBlank()) {
+            return
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                walletAbiSessionCoordinator.pairWalletConnectUri(
+                    greenWallet = greenWallet,
+                    session = session,
+                    input = pairingInput,
+                )
+            }.onFailure { error ->
+                postSideEffect(SideEffects.ErrorSnackbar(error))
             }
         }
     }
@@ -198,7 +240,7 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
             title = getString(Res.string.id_transact),
             walletName = greenWallet.name,
             showBadge = !greenWallet.isRecoveryConfirmed,
-            showBottomNavigation = true
+            showBottomNavigation = true,
         )
     }
 }
@@ -209,22 +251,30 @@ class TransactViewModelPreview(val isEmpty: Boolean = false) : TransactViewModel
 
     override val transactions: StateFlow<DataState<List<TransactionLook>>> = MutableStateFlow(
         DataState.Success(
-            if (isEmpty) listOf() else listOf(
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-                previewTransactionLook(),
-            )
+            if (isEmpty) {
+                listOf()
+            } else {
+                listOf(
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                    previewTransactionLook(),
+                )
+            }
         )
     )
+
+    override val walletAbiCard: StateFlow<WalletAbiTransactCardLook?> = MutableStateFlow(null)
+
+    override fun handleWalletAbiScan(input: String) = Unit
 
     companion object : Loggable() {
         fun create(isEmpty: Boolean = false) = TransactViewModelPreview(isEmpty = isEmpty)
