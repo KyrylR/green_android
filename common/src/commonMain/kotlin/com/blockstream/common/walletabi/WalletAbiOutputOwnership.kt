@@ -1,5 +1,7 @@
 package com.blockstream.common.walletabi
 
+import com.blockstream.common.gdk.data.Address
+import com.blockstream.common.gdk.data.PreviousAddresses
 import com.blockstream.common.gdk.data.ValidateAddressees
 import com.blockstream.common.walletabi.transport.WalletAbiOutputSchema
 import kotlinx.serialization.json.JsonArray
@@ -8,10 +10,41 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 
+private const val WALLET_ABI_PREVIOUS_ADDRESS_PAGE_LIMIT = 20
+
 internal data class WalletAbiKnownDestinationLookup(
     val addresses: Set<String> = emptySet(),
     val scripts: Set<String> = emptySet(),
 )
+
+internal suspend fun loadWalletAbiKnownDestinationLookup(
+    loadPreviousAddresses: suspend (lastPointer: Int?) -> PreviousAddresses,
+): WalletAbiKnownDestinationLookup {
+    val addresses = linkedSetOf<String>()
+    val scripts = linkedSetOf<String>()
+    var lastPointer: Int? = null
+    var pageCount = 0
+
+    while (pageCount < WALLET_ABI_PREVIOUS_ADDRESS_PAGE_LIMIT) {
+        val page = loadPreviousAddresses(lastPointer)
+        page.addresses.forEach { address ->
+            address.normalizedAddressOrNull()?.let(addresses::add)
+            address.normalizedScriptOrNull()?.let(scripts::add)
+        }
+
+        val nextPointer = page.lastPointer ?: break
+        if (nextPointer == lastPointer) {
+            break
+        }
+        lastPointer = nextPointer
+        pageCount += 1
+    }
+
+    return WalletAbiKnownDestinationLookup(
+        addresses = addresses,
+        scripts = scripts,
+    )
+}
 
 internal fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
     result: ValidateAddressees,
@@ -113,6 +146,20 @@ private fun collectWalletAbiScriptCandidates(
 
         else -> Unit
     }
+}
+
+private fun Address.normalizedAddressOrNull(): String? {
+    return address
+        .trim()
+        .takeIf { it.isNotEmpty() }
+        ?.lowercase()
+}
+
+private fun Address.normalizedScriptOrNull(): String? {
+    return script
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.lowercase()
 }
 
 private fun collectWalletAbiAddressCandidates(

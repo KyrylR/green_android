@@ -1,5 +1,7 @@
 package com.blockstream.common.walletabi
 
+import com.blockstream.common.gdk.data.Address
+import com.blockstream.common.gdk.data.PreviousAddresses
 import com.blockstream.common.gdk.data.ValidateAddressees
 import com.blockstream.common.walletabi.transport.WalletAbiErrorInfo
 import com.blockstream.common.walletabi.transport.WalletAbiInputSchema
@@ -535,6 +537,49 @@ class WalletAbiSupportTest {
                 output = externalOutputSchema(),
                 knownDestinations = WalletAbiKnownDestinationLookup(),
             ),
+        )
+    }
+
+    @Test
+    fun loadWalletAbiKnownDestinationLookupCollectsPagedAddressesAndScripts() = runTest {
+        var call = 0
+        val lookup = loadWalletAbiKnownDestinationLookup { lastPointer ->
+            when (call++) {
+                0 -> {
+                    assertEquals(null, lastPointer)
+                    PreviousAddresses(
+                        lastPointer = 11,
+                        addresses = listOf(
+                            Address(
+                                address = "TEX1QFIRST",
+                                script = "0014FIRSTFIRSTFIRSTFIRSTFIRSTFIRSTFIRST12",
+                            ),
+                        ),
+                    )
+                }
+
+                else -> {
+                    assertEquals(11, lastPointer)
+                    PreviousAddresses(
+                        lastPointer = null,
+                        addresses = listOf(
+                            Address(
+                                address = "tex1qsecond",
+                                script = "0014secondsecondsecondsecondsecond1234",
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
+
+        assertEquals(setOf("tex1qfirst", "tex1qsecond"), lookup.addresses)
+        assertEquals(
+            setOf(
+                "0014firstfirstfirstfirstfirstfirstfirst12",
+                "0014secondsecondsecondsecondsecond1234",
+            ),
+            lookup.scripts,
         )
     }
 
