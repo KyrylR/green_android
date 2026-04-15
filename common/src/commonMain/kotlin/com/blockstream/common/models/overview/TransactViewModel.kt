@@ -49,6 +49,9 @@ abstract class TransactViewModelAbstract(
     @NativeCoroutinesState
     abstract val walletAbiCard: StateFlow<WalletAbiTransactCardLook?>
 
+    @NativeCoroutinesState
+    abstract val hasPendingWalletAbiTransactionRequest: StateFlow<Boolean>
+
     fun buy() {
         countly.buyInitiate()
         postEvent(
@@ -142,6 +145,11 @@ class TransactViewModel(greenWallet: GreenWallet) :
         walletAbiSessionCoordinator.state(greenWallet.id)
             .map { it.toTransactCardLook() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), null)
+
+    override val hasPendingWalletAbiTransactionRequest: StateFlow<Boolean> =
+        walletAbiSessionCoordinator.state(greenWallet.id)
+            .map { state -> state.overlay is com.blockstream.common.walletabi.WalletAbiOverlayLook.TransactionApproval }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), false)
 
     init {
         greenWalletFlow.filterNotNull().onEach {
@@ -244,6 +252,7 @@ class TransactViewModelPreview(val isEmpty: Boolean = false) :
         )
     )
     override val walletAbiCard: StateFlow<WalletAbiTransactCardLook?> = MutableStateFlow(null)
+    override val hasPendingWalletAbiTransactionRequest: StateFlow<Boolean> = MutableStateFlow(false)
 
     override fun handleWalletAbiScan(input: String) = Unit
 

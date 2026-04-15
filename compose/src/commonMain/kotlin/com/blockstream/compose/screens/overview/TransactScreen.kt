@@ -52,6 +52,7 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
 
         val transactions by viewModel.transactions.collectAsStateWithLifecycle()
         val walletAbiCard by viewModel.walletAbiCard.collectAsStateWithLifecycle()
+        val hasPendingWalletAbiTransactionRequest by viewModel.hasPendingWalletAbiTransactionRequest.collectAsStateWithLifecycle()
         val isMultisigWatchOnly by viewModel.isMultisigWatchOnly.collectAsStateWithLifecycle()
         val innerPadding = LocalInnerPadding.current
         val listState = rememberLazyListState()
@@ -96,6 +97,17 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
                     WalletAbiPendingRequestCard(
                         card = card,
                         modifier = Modifier.padding(top = 16.dp),
+                        onClick = if (hasPendingWalletAbiTransactionRequest) {
+                            {
+                                viewModel.postEvent(
+                                    NavigateDestinations.WalletAbiRequest(
+                                        greenWallet = viewModel.greenWallet,
+                                    )
+                                )
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -139,10 +151,12 @@ fun TransactScreen(viewModel: TransactViewModelAbstract) {
 private fun WalletAbiPendingRequestCard(
     card: WalletAbiTransactCardLook,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     GreenCard(
         modifier = modifier,
         padding = 16,
+        onClick = onClick,
     ) {
         GreenColumn(
             padding = 0,
