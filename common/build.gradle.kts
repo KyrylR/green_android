@@ -201,6 +201,10 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
         }
 
+        getByName("jvmTest").dependencies {
+            implementation(libs.mockk)
+        }
+
         androidMain.dependencies {
             val reownAndroidCore = project.dependencies.create(libs.reown.android.core.get()).apply {
                 (this as org.gradle.api.artifacts.ExternalModuleDependency)
