@@ -1975,6 +1975,14 @@ class GdkSession constructor(
         )
     ).result<PreviousAddresses>()
 
+    suspend fun validateAddressee(
+        account: Account,
+        address: String,
+    ) = validateAddress(
+        network = account.network,
+        params = ValidateAddresseesParams.create(account.network, address),
+    )
+
     override fun refreshAssets(params: AssetsParams) {
         (activeLiquid ?: liquid)?.also { gdk.refreshAssets(gdkSession(it), params) }
     }
@@ -3382,4 +3390,3 @@ class GdkSession constructor(
         )
     }
 }
-

@@ -93,7 +93,7 @@ internal fun walletAbiOutputMatchesKnownWalletDestination(
     )
 }
 
-private fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
+internal fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
     val candidates = linkedSetOf<String>()
     collectWalletAbiAddressCandidates(
         element = output.lock,

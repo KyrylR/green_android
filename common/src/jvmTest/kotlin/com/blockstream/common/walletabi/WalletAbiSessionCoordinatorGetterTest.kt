@@ -44,10 +44,7 @@ class WalletAbiSessionCoordinatorGetterTest {
                 ),
             ),
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
         )
@@ -89,10 +86,7 @@ class WalletAbiSessionCoordinatorGetterTest {
                 ),
             ),
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
         )
@@ -150,10 +144,7 @@ class WalletAbiSessionCoordinatorGetterTest {
                 ),
             ),
         )
-        val coordinator = WalletAbiSessionCoordinator(
-            json = json,
-            executionContextResolver = FakeExecutionContextResolver(),
-            walletAbiProviderRunner = FakeWalletAbiProviderRunner(),
+        val coordinator = coordinator(
             walletSettingsManager = manager,
             walletConnectBridge = bridge,
         )
@@ -266,6 +257,28 @@ class WalletAbiSessionCoordinatorGetterTest {
             peerUrl = "https://example.app",
             peerIcons = emptyList(),
             verifyContext = null,
+        )
+    }
+
+    private fun coordinator(
+        walletSettingsManager: WalletSettingsManager,
+        walletConnectBridge: WalletAbiWalletConnectBridge,
+    ): WalletAbiSessionCoordinator {
+        val executionContextResolver = FakeExecutionContextResolver()
+        val walletAbiProviderRunner = FakeWalletAbiProviderRunner()
+        return WalletAbiSessionCoordinator(
+            json = json,
+            executionContextResolver = executionContextResolver,
+            walletAbiImpactPreviewer = NoopWalletAbiImpactPreviewer(),
+            walletAbiProcessor = WalletAbiProcessor(
+                json = json,
+                executionContextResolver = executionContextResolver,
+                providerRunner = walletAbiProviderRunner,
+            ),
+            walletAbiResultPresenter = WalletAbiResultPresenter(),
+            walletAbiProviderRunner = walletAbiProviderRunner,
+            walletSettingsManager = walletSettingsManager,
+            walletConnectBridge = walletConnectBridge,
         )
     }
 }
