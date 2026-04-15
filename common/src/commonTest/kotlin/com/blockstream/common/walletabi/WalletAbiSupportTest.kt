@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.test.runTest
 import lwk.Chain
@@ -313,6 +314,60 @@ class WalletAbiSupportTest {
         )
     }
 
+    @Test
+    fun walletAbiRequestNeedsResolutionWhenOutputAssetIdIsDeferred() {
+        val request = txCreateRequest(
+            outputs = listOf(
+                externalOutputSchema().copy(
+                    asset = buildJsonObject {
+                        put("type", "issuance_asset")
+                    },
+                ),
+            ),
+        )
+
+        assertTrue(walletAbiRequestNeedsResolution(request))
+    }
+
+    @Test
+    fun walletAbiTxRequestWithResolvedOutputsPatchesDeferredOutputsAndScripts() {
+        val request = txCreateRequest(
+            outputs = listOf(
+                externalOutputSchema(assetId = "known-asset"),
+                externalOutputSchema().copy(
+                    asset = buildJsonObject {
+                        put("type", "issuance_asset")
+                    },
+                ),
+            ),
+        )
+
+        val resolved = walletAbiTxRequestWithResolvedOutputs(
+            txRequest = request,
+            resolvedOutputs = listOf(
+                WalletAbiResolvedTransactionOutput(
+                    assetId = "ignored",
+                    scriptHex = "0014aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                ),
+                WalletAbiResolvedTransactionOutput(
+                    assetId = "resolved-asset-id",
+                    scriptHex = "0014feedface1234feedface1234feedface1234",
+                ),
+            ),
+        )
+
+        assertEquals("known-asset", resolveWalletAbiAssetId(resolved.params.outputs[0].asset))
+        assertEquals("resolved-asset-id", resolveWalletAbiAssetId(resolved.params.outputs[1].asset))
+        assertEquals(
+            "0014aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            resolved.params.outputs[0].lock.jsonObject.getValue("script").jsonPrimitive.content,
+        )
+        assertEquals(
+            "0014feedface1234feedface1234feedface1234",
+            resolved.params.outputs[1].lock.jsonObject.getValue("script").jsonPrimitive.content,
+        )
+    }
+
     private fun walletOutputSchema(
         assetId: String = "policy-asset",
         amountSat: Long = 2_500,
@@ -348,5 +403,18 @@ class WalletAbiSupportTest {
         blinder = buildJsonObject {
             put("type", "rand")
         },
+    )
+
+    private fun txCreateRequest(
+        outputs: List<WalletAbiOutputSchema>,
+    ) = WalletAbiTxCreateRequest(
+        abiVersion = "wallet-abi-0.1",
+        requestId = "req-1",
+        network = WalletAbiNetwork.LIQUID,
+        params = WalletAbiRuntimeParams(
+            inputs = emptyList(),
+            outputs = outputs,
+        ),
+        broadcast = true,
     )
 }
