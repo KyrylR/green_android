@@ -33,13 +33,27 @@ internal data class WalletAbiSessionProfile(
     val summary: String,
 )
 
-internal class WalletAbiExecutionContextResolver(
-    private val sessionManager: SessionManager,
-) {
+internal interface WalletAbiExecutionContextResolving {
     suspend fun resolveDirect(
         session: GdkSession,
         requestNetwork: WalletAbiNetwork,
         preferredAccountId: String? = null,
+    ): WalletAbiExecutionContext
+
+    suspend fun resolveSessionRequest(
+        incoming: GdkSession,
+        requestNetwork: WalletAbiNetwork,
+        preferredAccountId: String? = null,
+    ): WalletAbiExecutionContext
+}
+
+internal class WalletAbiExecutionContextResolver(
+    private val sessionManager: SessionManager,
+) : WalletAbiExecutionContextResolving {
+    override suspend fun resolveDirect(
+        session: GdkSession,
+        requestNetwork: WalletAbiNetwork,
+        preferredAccountId: String?,
     ): WalletAbiExecutionContext {
         return resolveProcessingContext(
             session = session,
@@ -48,10 +62,10 @@ internal class WalletAbiExecutionContextResolver(
         )
     }
 
-    suspend fun resolveSessionRequest(
+    override suspend fun resolveSessionRequest(
         incoming: GdkSession,
         requestNetwork: WalletAbiNetwork,
-        preferredAccountId: String? = null,
+        preferredAccountId: String?,
     ): WalletAbiExecutionContext {
         val connectedCandidates = sessionManager.getConnectedSessions().filter { it !== incoming }
         val incomingProfile = incoming.toWalletAbiSessionProfile()
