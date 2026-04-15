@@ -1,11 +1,13 @@
 package com.blockstream.common.walletabi
 
 import com.blockstream.common.walletabi.transport.WalletAbiOutputSchema
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+@Serializable
 internal enum class WalletAbiOutputClassification {
     EXTERNAL,
     WALLET_RECEIVE,

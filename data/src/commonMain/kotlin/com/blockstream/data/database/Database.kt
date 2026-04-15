@@ -313,6 +313,39 @@ class Database(driverFactory: DriverFactory, val settingsManager: SettingsManage
         walletDB.walletSettingsQueries.deleteWalletSetting(wallet_id = walletId, key = key)
     }
 
+    suspend fun getWalletAbiTransactionRecords(walletId: String) = io {
+        walletDB.walletAbiTransactionsQueries
+            .getWalletAbiTransactionRecords(wallet_id = walletId)
+            .executeAsList()
+    }
+
+    suspend fun getWalletAbiTransactionRecord(walletId: String, txHash: String) = io {
+        walletDB.walletAbiTransactionsQueries
+            .getWalletAbiTransactionRecord(wallet_id = walletId, tx_hash = txHash)
+            .executeAsOneOrNull()
+    }
+
+    suspend fun setWalletAbiTransactionRecord(
+        walletId: String,
+        txHash: String,
+        updatedAtEpochMilliseconds: Long,
+        recordJson: String,
+    ) = io {
+        walletDB.walletAbiTransactionsQueries.setWalletAbiTransactionRecord(
+            wallet_id = walletId,
+            tx_hash = txHash,
+            updated_at_ms = updatedAtEpochMilliseconds,
+            record_json = recordJson,
+        )
+    }
+
+    suspend fun deleteWalletAbiTransactionRecord(walletId: String, txHash: String) = io {
+        walletDB.walletAbiTransactionsQueries.deleteWalletAbiTransactionRecord(
+            wallet_id = walletId,
+            tx_hash = txHash,
+        )
+    }
+
     suspend fun getPendingSwaps(xPubHashId: String) = io {
         walletDB.boltzSwapsQueries.getPendingSwaps(xpub_hash_id = xPubHashId).executeAsList()
     }
