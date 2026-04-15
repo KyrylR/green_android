@@ -61,6 +61,7 @@ import com.blockstream.common.models.overview.SecurityViewModel.LocalSideEffects
 import com.blockstream.common.models.overview.SecurityViewModelAbstract
 import com.blockstream.common.models.overview.SecurityViewModelPreview
 import com.blockstream.common.navigation.NavigateDestinations
+import com.blockstream.common.walletabi.WalletAbiTransactCardLook
 import com.blockstream.compose.GreenPreview
 import com.blockstream.compose.components.GreenAlert
 import com.blockstream.compose.components.GreenButton
@@ -73,6 +74,7 @@ import com.blockstream.compose.components.OnProgressStyle
 import com.blockstream.compose.components.Promo
 import com.blockstream.compose.screens.overview.components.WatchOnlyWalletDescription
 import com.blockstream.compose.theme.displaySmall
+import com.blockstream.compose.theme.bodyMedium
 import com.blockstream.compose.theme.green
 import com.blockstream.compose.theme.labelLarge
 import com.blockstream.compose.theme.titleMedium
@@ -115,6 +117,7 @@ fun SecurityScreen(viewModel: SecurityViewModelAbstract) {
     val isWatchOnly by viewModel.isWatchOnly.collectAsStateWithLifecycle()
     val isQrWatchOnly by viewModel.isQrWatchOnly.collectAsStateWithLifecycle()
     val showGenuineCheck by viewModel.showGenuineCheck.collectAsStateWithLifecycle()
+    val walletAbiCard by viewModel.walletAbiCard.collectAsStateWithLifecycle()
 
     SetupScreen(
         viewModel = viewModel,
@@ -309,6 +312,22 @@ fun SecurityScreen(viewModel: SecurityViewModelAbstract) {
                 }
 
                 if (!viewModel.greenWallet.isHardware) {
+                    walletAbiCard?.also { card ->
+                        item(key = "wallet_abi") {
+                            ListHeader(title = "Connected dApps")
+                        }
+
+                        item {
+                            WalletAbiSecurityCard(card = card) {
+                                viewModel.postEvent(
+                                    NavigateDestinations.WalletAbiConnection(
+                                        greenWallet = viewModel.greenWallet,
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     item(key = "recovery") {
                         ListHeader(title = stringResource(Res.string.id_recovery))
                     }
@@ -370,6 +389,50 @@ fun SecurityItem(title: String, icon: ImageVector, state: Boolean?, onClick: () 
             Icon(
                 imageVector = PhosphorIcons.Regular.CaretRight,
                 contentDescription = null
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalletAbiSecurityCard(
+    card: WalletAbiTransactCardLook,
+    onClick: () -> Unit,
+) {
+    GreenCard(
+        onClick = onClick,
+    ) {
+        GreenColumn(
+            padding = 0,
+            space = 8,
+        ) {
+            GreenRow(
+                padding = 0,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = card.title,
+                    style = titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = card.statusLabel,
+                    style = labelLarge,
+                )
+            }
+
+            card.subtitle?.also { subtitle ->
+                Text(
+                    text = subtitle,
+                    style = bodyMedium,
+                    color = whiteMedium,
+                )
+            }
+
+            Text(
+                text = card.body,
+                style = bodyMedium,
+                color = whiteMedium,
             )
         }
     }

@@ -16,6 +16,9 @@ import com.blockstream.common.navigation.NavigateDestinations
 import com.blockstream.common.sideeffects.SideEffects
 import com.blockstream.common.usecases.SetBiometricsUseCase
 import com.blockstream.common.utils.StringHolder
+import com.blockstream.common.walletabi.WalletAbiSessionCoordinator
+import com.blockstream.common.walletabi.WalletAbiTransactCardLook
+import com.blockstream.common.walletabi.toTransactCardLook
 import com.blockstream.green.utils.Loggable
 import com.blockstream.jade.firmware.JadeFirmwareManager
 import com.blockstream.jade.firmware.JadeFirmwareManager.Companion.JADE_FW_VERSIONS_LATEST
@@ -54,6 +57,7 @@ abstract class SecurityViewModelAbstract(
     abstract val credentials: StateFlow<List<Pair<CredentialType, LoginCredentials?>>>
     abstract val showRecoveryConfirmation: StateFlow<Boolean>
     abstract val showGenuineCheck: StateFlow<Boolean>
+    abstract val walletAbiCard: StateFlow<WalletAbiTransactCardLook?>
 
     internal val credentialTypes =
         listOf(CredentialType.BIOMETRICS_MNEMONIC, CredentialType.PIN_PINDATA)
@@ -116,6 +120,7 @@ class SecurityViewModel(greenWallet: GreenWallet) :
     SecurityViewModelAbstract(greenWallet = greenWallet) {
 
     private val setBiometricsUseCase: SetBiometricsUseCase by inject()
+    private val walletAbiSessionCoordinator: WalletAbiSessionCoordinator by inject()
 
     override val isHardware: Boolean
         get() = greenWalletOrNull?.isHardware == true
@@ -151,6 +156,11 @@ class SecurityViewModel(greenWallet: GreenWallet) :
             ?: greenWalletOrNull?.deviceIdentifiers?.any { it.model == DeviceModel.BlockstreamJadePlus }) == true
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), false)
 
+    override val walletAbiCard: StateFlow<WalletAbiTransactCardLook?> =
+        walletAbiSessionCoordinator.state(greenWallet.id)
+            .map { it.toTransactCardLook() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), null)
+
     class LocalEvents {
         data object EnableBiometrics : Event
         data object DisableBiometrics : Event
@@ -175,6 +185,13 @@ class SecurityViewModel(greenWallet: GreenWallet) :
 
         viewModelScope.launch {
             updateNavData(greenWallet)
+        }
+
+        viewModelScope.launch {
+            walletAbiSessionCoordinator.bind(
+                greenWallet = greenWallet,
+                session = session,
+            )
         }
 
         bootstrap()
@@ -259,6 +276,8 @@ class SecurityViewModelPreview(override val isHardware: Boolean = false) :
     override val isJade: StateFlow<Boolean> = MutableStateFlow(isHardware)
     override val showRecoveryConfirmation: StateFlow<Boolean> = MutableStateFlow(true)
     override val showGenuineCheck: StateFlow<Boolean> = MutableStateFlow(false)
+    private val _walletAbiCard = MutableStateFlow<WalletAbiTransactCardLook?>(null)
+    override val walletAbiCard: StateFlow<WalletAbiTransactCardLook?> = _walletAbiCard
 
     override val credentials: StateFlow<List<Pair<CredentialType, LoginCredentials?>>> =
         MutableStateFlow(
@@ -278,6 +297,20 @@ class SecurityViewModelPreview(override val isHardware: Boolean = false) :
         )
 
     companion object : Loggable() {
-        fun preview(isHardware: Boolean = false) = SecurityViewModelPreview(isHardware = isHardware)
+        fun preview(
+            isHardware: Boolean = false,
+            showWalletAbiCard: Boolean = false,
+        ) = SecurityViewModelPreview(isHardware = isHardware).apply {
+            _walletAbiCard.value = if (showWalletAbiCard) {
+                WalletAbiTransactCardLook(
+                    title = "Connected dApp",
+                    subtitle = "lending-contract.blockstream.com",
+                    body = "Network: testnet-liquid • 1 auto-approved getter",
+                    statusLabel = "Connected",
+                )
+            } else {
+                null
+            }
+        }
     }
 }
