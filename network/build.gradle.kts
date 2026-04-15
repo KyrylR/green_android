@@ -24,6 +24,7 @@ kotlin {
             api(libs.ktor.client.content.negotiation)
             api(libs.ktor.client.resources)
             api(libs.ktor.client.logging)
+            api(libs.ktor.client.websockets)
             api(libs.ktor.serialization.kotlinx.json)
         }
 
