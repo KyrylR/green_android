@@ -93,7 +93,7 @@ class BreezSdk(private val breezSdk: BlockingBreezServices) {
     fun payOnchain(address: String, satPerVbyte: UInt?) {
         val amount = breezSdk.onchainPaymentLimits().maxPayableSat
         val prepareRes = breezSdk.prepareOnchainPayment(
-            PrepareOnchainPaymentRequest(amount, SwapAmountType.SEND, satPerVbyte ?: 10.toUInt())
+            PrepareOnchainPaymentRequest(amount, SwapAmountType.SEND, satPerVbyte ?: 10u)
         )
         breezSdk.payOnchain(PayOnchainRequest(address, prepareRes))
     }

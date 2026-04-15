@@ -260,7 +260,7 @@ data class Transaction constructor(
             it.hasUnblindingData()
         }.map {
             InputUnblindedData(
-                vin = it.ptIdx?.toUInt() ?: 0.toUInt(),
+                vin = it.ptIdx?.toUInt() ?: 0u,
                 assetId = it.assetId ?: "",
                 assetblinder = it.assetblinder ?: "",
                 satoshi = it.satoshi ?: 0,
@@ -272,7 +272,7 @@ data class Transaction constructor(
             it.hasUnblindingData()
         }.map {
             OutputUnblindedData(
-                vout = it.ptIdx?.toUInt() ?: 0.toUInt(),
+                vout = it.ptIdx?.toUInt() ?: 0u,
                 assetId = it.assetId ?: "",
                 assetblinder = it.assetblinder ?: "",
                 satoshi = it.satoshi ?: 0,

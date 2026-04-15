@@ -103,12 +103,12 @@ class Lwk(
                     val boltzSessionBuilder = BoltzSessionBuilder(
                         network = network,
                         client = client,
-                        timeout = 30.toULong(),
+                        timeout = 30uL,
                         mnemonic = mnemonic,
                         referralId = "blockstream",
                         logging = this@Lwk,
                         polling = true,
-                        timeoutAdvance = 10.toULong(),
+                        timeoutAdvance = 10uL,
                         randomPreimages = true
                     )
 
@@ -459,11 +459,8 @@ class Lwk(
         const val DEV_BASE_URL = "https://green-webhooks.dev.blockstream.com/"
     }
 }
-
 private fun SwapAsset.toLwk(): lwk.SwapAsset = when (this) {
     SwapAsset.Bitcoin -> lwk.SwapAsset.ONCHAIN
     SwapAsset.Liquid -> lwk.SwapAsset.LIQUID
     SwapAsset.Lightning -> lwk.SwapAsset.LIGHTNING
 }
-
-
