@@ -1,43 +1,53 @@
+import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.kmp.nativecoroutines)
     alias(libs.plugins.app.cash.sqldelight)
     alias(libs.plugins.nativeCocoapods)
+    alias(libs.plugins.google.devtools.ksp)
+}
+
+compose.resources {
+    packageOfResClass = "blockstream_green.common.generated.resources" // Keep the same package name
+    publicResClass = true
+    generateResClass = auto
 }
 
 sqldelight {
     databases {
         create("WalletDB") {
-            packageName.set("com.blockstream.data.database.wallet")
+            packageName.set("com.blockstream.common.database.wallet")
             srcDirs.setFrom("src/commonMain/database_wallet")
         }
         create("LocalDB") {
-            packageName.set("com.blockstream.data.database.local")
+            packageName.set("com.blockstream.common.database.local")
             srcDirs.setFrom("src/commonMain/database_local")
         }
     }
     linkSqlite.set(true)
 }
 
+nativeCoroutines { k2Mode = false }
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
-        freeCompilerArgs.add("-Xexplicit-backing-fields")
-        freeCompilerArgs.add("-Xskip-prerelease-check")
     }
 
     jvmToolchain(libs.versions.jvm.get().toInt())
 
-    // Target declarations - add or remove as needed below. These define
-    // which platforms this KMP module supports.
-    // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
     androidLibrary {
-        namespace = "com.blockstream.green.data"
+        namespace = "com.blockstream.common"
         compileSdk = libs.versions.androidCompileSdk.get().toInt()
         minSdk = libs.versions.androidMinSdk.get().toInt()
+
+        experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
 
         withHostTestBuilder {
         }
@@ -56,12 +66,12 @@ kotlin {
             }
         }
     }
-
     jvm()
 
     val xcf = XCFramework()
     listOf(
-        iosArm64(), iosSimulatorArm64()
+        iosArm64(),
+        iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
             baseName = "common"
@@ -114,71 +124,85 @@ kotlin {
             }
         }
 
-        commonMain {
-            dependencies {
-                /**  --- Modules  --- */
-                api(project(":utils"))
-                api(project(":network"))
-                api(project(":jade"))
+        commonMain.dependencies {
+            /**  --- Modules ---------------------------------------------------------------------------- */
+            api(project(":data"))
+            api(project(":ui-common"))
+            api(project(":jade"))
+            api(project(":domain"))
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Compose -------------------------------------------------------------------- */
-                api(libs.lifecycle.viewmodel.compose)
-                /** --------------------------------------------------------------------------------- */
+            /**  --- Kotlin & KotlinX ------------------------------------------------------------------- */
+            api(libs.kotlinx.serialization.core)
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.serialization.cbor)
+            api(libs.kotlinx.datetime)
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Kotlin  --- */
-                api(libs.kotlinx.serialization.core)
-                api(libs.kotlinx.serialization.json)
-                api(libs.kotlinx.serialization.cbor)
-                api(libs.kotlinx.datetime)
-                api(libs.kotlinx.atomicfu)
+            /**  --- Compose ---------------------------------------------------------------------------- */
+            api(compose.components.resources)
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Koin  --- */
-                api(project.dependencies.platform(libs.koin.bom))
-                api(libs.koin.core)
+            /**  --- Koin   ----------------------------------------------------------------------------- */
+            api(project.dependencies.platform(libs.koin.bom))
+            api(libs.koin.core)
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Blockstream  --- */
-                api(libs.blockstream.lwk)
-                api(libs.blockstream.glsdk)
+            /**  --- Voyager ---------------------------------------------------------------------------- */
+            // Required for iOS target compilation
+            compileOnly(compose.runtime)
+            compileOnly(compose.runtimeSaveable)
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Breez ------------------------------------------------------------------------------ */
-                api(libs.breez.sdk.kmp)
-                /** ----------------------------------------------------------------------------------------- */
+            /**  --- Breez ------------------------------------------------------------------------------ */
+            api(libs.breez.sdk.kmp)
+            /** ----------------------------------------------------------------------------------------- */
 
-                /**  --- Utils  --- */
-                api(libs.sqldelight.coroutines.extensions)
-                api(libs.stately.concurrent.collections)
-                api(libs.kotlin.retry)
-                api(libs.ksoup.entites) // html entities
-                api(libs.filekit.core)
-                api(libs.filekit.dialogs)
-                api(libs.okio) // Filesystem
-                api(libs.kable.core)
-                api(libs.kotlincrypto.hash.md)
-                api(libs.kotlincrypto.hash.sha2)
-                api(libs.multiplatform.settings)
-                api(libs.multiplatform.settings.no.arg)
-                api(libs.multiplatform.settings.make.observable)
-                api(libs.multiplatform.settings.coroutines)
-                api(libs.tuulbox.coroutines)
-                api(libs.uri.kmp)
-                api(libs.state.keeper)
-            }
+            /**  --- Misc. ------------------------------------------------------------------------------ */
+            api(libs.stately.concurrent.collections)
+            api(libs.sqldelight.coroutines.extensions)
+            api(libs.kmp.observableviewmodel)
+            api(libs.uri.kmp)
+            api(libs.multiplatform.settings)
+            api(libs.multiplatform.settings.no.arg)
+            api(libs.multiplatform.settings.make.observable)
+            api(libs.multiplatform.settings.coroutines)
+            api(libs.okio) // Filesystem
+            api(libs.state.keeper)
+            api(libs.kase64) // base64
+            api(libs.kable.core)
+            api(libs.kotlincrypto.hash.md)
+            api(libs.kotlincrypto.hash.sha2)
+            implementation(libs.kotlin.retry)
+
+            api(libs.filekit.core)
+            api(libs.filekit.dialogs)
+
+            //implementation(libs.compose.action.menu)
+            implementation(libs.phosphor.icon)
+
+            implementation(libs.tuulbox.coroutines)
+            /** ----------------------------------------------------------------------------------------- */
         }
 
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.koin.test)
+            // implementation(libs.koin.test)
+
+            compileOnly(compose.runtime)
+            compileOnly(compose.runtimeSaveable)
+        }
+
+        val jvmMain by getting
+        jvmMain.dependencies {
+            api(libs.kotlinx.coroutines.swing)
+            implementation(compose.desktop.currentOs)
+            implementation(libs.sqldelight.sqlite.driver)
         }
 
         getByName("jvmTest").dependencies {
             implementation(libs.mockk)
-        }
-
-
-        jvmMain.dependencies {
-            api(libs.kotlinx.coroutines.swing)
-            implementation(libs.sqldelight.sqlite.driver)
         }
 
         androidMain.dependencies {
@@ -229,6 +253,8 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
+            // implementation(libs.koin.test)
+            // implementation(libs.koin.test.junit4)
             implementation(libs.mockk)
         }
 
@@ -258,6 +284,33 @@ tasks.configureEach {
         dependsOn("fetchIosBinaries")
     }
 }
+
+task("useBlockstreamKeys") {
+    doLast {
+        println("AppKeys: Use Blockstream Keys")
+        rootProject.file("contrib/blockstream_keys.txt")
+            .copyTo(
+                project.file("src/commonMain/composeResources/files/app_keys.txt"),
+                overwrite = true
+            )
+    }
+}
+
+// Made the app work without app_keys.txt
+//tasks.register("appKeys") {
+//    doLast {
+//        val appKeys = project.file("src/commonMain/composeResources/files/app_keys.txt")
+//        if (appKeys.exists()) {
+//            println("AppKeys: ✔")
+//        } else {
+//            println("AppKeys: Use empty key file")
+//            appKeys.createNewFile()
+//        }
+//    }
+//    outputs.upToDateWhen { false }
+//}
+//
+// tasks.getByName("androidPreBuild").dependsOn(tasks.getByName("appKeys"))
 
 tasks.getByName("clean").doFirst {
     delete(project.file("src/include"))
