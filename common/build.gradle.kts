@@ -236,6 +236,14 @@ kotlin {
             }
         }
 
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.mockk)
+            }
+        }
+
         androidUnitTest.dependencies {
             implementation(libs.junit)
             implementation(libs.sqldelight.sqlite.driver)
