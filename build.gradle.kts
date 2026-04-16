@@ -1,3 +1,8 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.util.Base64
+import java.io.File
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     repositories {
@@ -47,6 +52,38 @@ configurations.all {
     resolutionStrategy.cacheDynamicVersionsFor(10, TimeUnit.MINUTES)
 }
 
+fun decodeAppKeys(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return trimmed
+
+    return runCatching {
+        JsonSlurper().parseText(trimmed)
+        trimmed
+    }.getOrElse {
+        val normalized = trimmed.filterNot(Char::isWhitespace)
+        String(Base64.getDecoder().decode(normalized), Charsets.UTF_8)
+    }
+}
+
+fun loadAppKeys(file: File): MutableMap<String, Any?> {
+    if (!file.exists()) return mutableMapOf()
+
+    val raw = file.readText().trim()
+    if (raw.isEmpty()) return mutableMapOf()
+
+    val parsed = JsonSlurper().parseText(decodeAppKeys(raw))
+    require(parsed is Map<*, *>) { "${file.path} must decode to a JSON object" }
+
+    return parsed.entries.associate { (key, value) -> key.toString() to value }.toMutableMap()
+}
+
+fun mergeReownProjectId(appKeys: MutableMap<String, Any?>): MutableMap<String, Any?> {
+    System.getenv("REOWN_PROJECT_ID")?.takeIf { it.isNotBlank() }?.let {
+        appKeys["reown_project_id"] = it
+    }
+    return appKeys
+}
+
 task("printLwkVersion") {
     doLast {
         val lwkVersion = libs.versions.blockstream.lwk.get()
@@ -87,9 +124,27 @@ task("printLwkVersion") {
 
 task("useBlockstreamKeys") {
     doLast {
-        println("AppKeys: Use Blockstream Keys")
-        rootProject.file("contrib/blockstream_keys.txt").copyTo(
-            rootProject.file("app_keys.txt"), overwrite = true
+        val blockstreamKeys = loadAppKeys(rootProject.file("contrib/blockstream_keys.txt"))
+        val existingLocalKeys = loadAppKeys(rootProject.file("app_keys.txt"))
+
+        existingLocalKeys.forEach { (key, value) ->
+            if (key !in blockstreamKeys) {
+                blockstreamKeys[key] = value
+            }
+        }
+
+        val mergedAppKeys = mergeReownProjectId(blockstreamKeys)
+        val appKeysFile = rootProject.file("app_keys.txt")
+
+        appKeysFile.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mergedAppKeys)))
+        println(
+            buildString {
+                append("AppKeys: Wrote ")
+                append(appKeysFile.path)
+                if ("reown_project_id" in mergedAppKeys) {
+                    append(" with reown_project_id")
+                }
+            }
         )
     }
 }
