@@ -44,6 +44,8 @@ jobs:
           echo "release_name=${release_name}" >> "${GITHUB_OUTPUT}"
 
       - name: Build development debug APK
+        env:
+          REOWN_PROJECT_ID: ${{ secrets.REOWN_PROJECT_ID }}
         run: ./gradlew --no-daemon --max-workers=2 -Pkotlin.incremental=false :androidApp:assembleDevelopmentDebug
 
       - name: Publish GitHub release
