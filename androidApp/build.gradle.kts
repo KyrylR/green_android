@@ -1,7 +1,10 @@
 
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import org.codehaus.groovy.runtime.ProcessGroovyMethods
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -36,7 +39,45 @@ if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
 
-val appKeys = rootProject.file("app_keys.txt").takeIf { it.exists() }?.readText() ?: ""
+fun decodeAppKeys(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return trimmed
+
+    return runCatching {
+        JsonSlurper().parseText(trimmed)
+        trimmed
+    }.getOrElse {
+        val normalized = trimmed.filterNot(Char::isWhitespace)
+        String(Base64.getDecoder().decode(normalized), Charsets.UTF_8)
+    }
+}
+
+fun loadAppKeys(): MutableMap<String, Any?> {
+    val appKeysFile = rootProject.file("app_keys.txt")
+    if (!appKeysFile.exists()) return mutableMapOf()
+
+    val raw = appKeysFile.readText().trim()
+    if (raw.isEmpty()) return mutableMapOf()
+
+    val parsed = JsonSlurper().parseText(decodeAppKeys(raw))
+    require(parsed is Map<*, *>) { "${appKeysFile.path} must decode to a JSON object" }
+
+    return parsed.entries.associate { (key, value) -> key.toString() to value }.toMutableMap()
+}
+
+fun buildAppKeys(): String {
+    val appKeys = loadAppKeys()
+    System.getenv("REOWN_PROJECT_ID")?.takeIf { it.isNotBlank() }?.let {
+        appKeys["reown_project_id"] = it
+    }
+
+    if (appKeys.isEmpty()) return ""
+
+    val json = JsonOutput.toJson(appKeys)
+    return Base64.getEncoder().encodeToString(json.toByteArray(Charsets.UTF_8))
+}
+
+val appKeys = buildAppKeys()
 
 android {
     namespace = "com.blockstream.green"
