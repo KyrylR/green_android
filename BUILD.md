@@ -77,6 +77,21 @@ You can also use it from the command line:
 
 `./gradlew :androidApp:assembleDevelopmentDebug -PandroidOnly=true`
 
+#### Reown project ID
+
+`reown_project_id` is loaded from the gitignored repo-root `app_keys.txt` file, and can also be overridden at build time with the `REOWN_PROJECT_ID` environment variable.
+
+For local development, create or update the gitignored file by running:
+
+`REOWN_PROJECT_ID=your-project-id ./gradlew useBlockstreamKeys`
+
+For GitHub Actions, configure `REOWN_PROJECT_ID` as a repository secret and pass it into the Gradle step with:
+
+```yaml
+env:
+  REOWN_PROJECT_ID: ${{ secrets.REOWN_PROJECT_ID }}
+```
+
 #### Building with docker (optional)
 
 If you have docker configured and want to build the app in release mode
