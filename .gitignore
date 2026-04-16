@@ -30,6 +30,8 @@ app_keys.txt
 
 data/src/include
 data/src/libs
+common/src/include
+common/src/libs
 
 .kotlin/
 
