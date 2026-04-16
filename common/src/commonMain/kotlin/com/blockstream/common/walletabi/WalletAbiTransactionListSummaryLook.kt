@@ -11,7 +11,7 @@ data class WalletAbiTransactionListSummaryLook(
     val additionalAssetCount: Int = 0,
 )
 
-internal fun WalletAbiTransactionRecord.toListSummaryLook(): WalletAbiTransactionListSummaryLook {
+ fun WalletAbiTransactionRecord.toListSummaryLook(): WalletAbiTransactionListSummaryLook {
     val impactSummary = walletAbiCompactImpactSummary(review)
     return WalletAbiTransactionListSummaryLook(
         origin = origin,
@@ -22,7 +22,7 @@ internal fun WalletAbiTransactionRecord.toListSummaryLook(): WalletAbiTransactio
     )
 }
 
-internal fun WalletAbiTransactionRecordStatus.presentationLabel(): String {
+ fun WalletAbiTransactionRecordStatus.presentationLabel(): String {
     return when (this) {
         WalletAbiTransactionRecordStatus.APPROVED -> "Signed"
         WalletAbiTransactionRecordStatus.BROADCAST -> "Broadcast"

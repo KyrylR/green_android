@@ -115,6 +115,8 @@ kotlin {
         }
 
         commonMain {
+            kotlin.srcDir("../common/src/commonMain/kotlin/com/blockstream/common/walletabi")
+
             dependencies {
                 /**  --- Modules  --- */
                 api(project(":utils"))
@@ -165,10 +167,12 @@ kotlin {
             }
         }
 
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.koin.test)
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.koin.test)
+            }
         }
 
         getByName("jvmTest").dependencies {
@@ -181,7 +185,10 @@ kotlin {
             implementation(libs.sqldelight.sqlite.driver)
         }
 
-        androidMain.dependencies {
+        androidMain {
+            kotlin.srcDir("../common/src/androidMain/kotlin/com/blockstream/common/walletabi")
+
+            dependencies {
             val reownAndroidCore = project.dependencies.create(libs.reown.android.core.get()).apply {
                 (this as org.gradle.api.artifacts.ExternalModuleDependency)
                     .exclude(group = "io.github.pandulapeter.beagle", module = "log-okhttp")
@@ -205,6 +212,7 @@ kotlin {
             // api(libs.breez.sdk.android.get().toString()) { exclude(group = "net.java.dev.jna", module = "jna") }
             // implementation("${libs.jna.get()}@aar")
             /** ----------------------------------------------------------------------------------------- */
+            }
         }
 
         getByName("androidDeviceTest") {

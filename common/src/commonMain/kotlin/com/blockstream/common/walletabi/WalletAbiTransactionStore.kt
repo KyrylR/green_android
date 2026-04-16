@@ -9,13 +9,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
-internal enum class WalletAbiTransactionRecordStatus {
+ enum class WalletAbiTransactionRecordStatus {
     APPROVED,
     BROADCAST,
 }
 
 @Serializable
-internal data class WalletAbiTransactionRecord(
+ data class WalletAbiTransactionRecord(
     val walletId: String,
     val txHash: String,
     val origin: String,
@@ -25,7 +25,7 @@ internal data class WalletAbiTransactionRecord(
     val extraJson: String? = null,
 )
 
-internal class WalletAbiTransactionStore(
+ class WalletAbiTransactionStore(
     private val database: Database,
     private val json: Json,
 ) {

@@ -6,11 +6,11 @@ import com.blockstream.common.managers.SessionManager
 import com.blockstream.common.walletabi.transport.WalletAbiNetwork
 import lwk.Network as LwkNetwork
 
-internal enum class WalletAbiSignerKind {
+ enum class WalletAbiSignerKind {
     SOFTWARE,
 }
 
-internal data class WalletAbiExecutionContext(
+ data class WalletAbiExecutionContext(
     val session: GdkSession,
     val requestNetwork: WalletAbiNetwork,
     val accounts: List<Account>,
@@ -19,12 +19,12 @@ internal data class WalletAbiExecutionContext(
     val signerKind: WalletAbiSignerKind,
 )
 
-internal data class WalletAbiAccountProfile(
+ data class WalletAbiAccountProfile(
     val id: String,
     val network: WalletAbiNetwork,
 )
 
-internal data class WalletAbiSessionProfile(
+ data class WalletAbiSessionProfile(
     val id: String,
     val connected: Boolean,
     val signerKind: WalletAbiSignerKind?,
@@ -33,7 +33,7 @@ internal data class WalletAbiSessionProfile(
     val summary: String,
 )
 
-internal interface WalletAbiExecutionContextResolving {
+ interface WalletAbiExecutionContextResolving {
     suspend fun resolveDirect(
         session: GdkSession,
         requestNetwork: WalletAbiNetwork,
@@ -47,7 +47,7 @@ internal interface WalletAbiExecutionContextResolving {
     ): WalletAbiExecutionContext
 }
 
-internal class WalletAbiExecutionContextResolver(
+ class WalletAbiExecutionContextResolver(
     private val sessionManager: SessionManager,
 ) : WalletAbiExecutionContextResolving {
     override suspend fun resolveDirect(
@@ -129,7 +129,7 @@ internal class WalletAbiExecutionContextResolver(
     }
 }
 
-internal fun selectSessionRequestProfile(
+ fun selectSessionRequestProfile(
     incoming: WalletAbiSessionProfile,
     connectedCandidates: List<WalletAbiSessionProfile>,
     requestNetwork: WalletAbiNetwork,
@@ -144,7 +144,7 @@ internal fun selectSessionRequestProfile(
     } ?: signerCapableCandidates.firstOrNull()
 }
 
-internal fun WalletAbiNetwork.serialValue(): String {
+ fun WalletAbiNetwork.serialValue(): String {
     return when (this) {
         WalletAbiNetwork.LIQUID -> "liquid"
         WalletAbiNetwork.TESTNET_LIQUID -> "testnet-liquid"
@@ -152,7 +152,7 @@ internal fun WalletAbiNetwork.serialValue(): String {
     }
 }
 
-internal fun String.toWalletAbiNetwork(): WalletAbiNetwork {
+ fun String.toWalletAbiNetwork(): WalletAbiNetwork {
     return when (trim().lowercase()) {
         "liquid" -> WalletAbiNetwork.LIQUID
         "testnet-liquid" -> WalletAbiNetwork.TESTNET_LIQUID
@@ -161,7 +161,7 @@ internal fun String.toWalletAbiNetwork(): WalletAbiNetwork {
     }
 }
 
-internal fun WalletAbiNetwork.toLwkNetwork(): LwkNetwork {
+ fun WalletAbiNetwork.toLwkNetwork(): LwkNetwork {
     return when (this) {
         WalletAbiNetwork.LIQUID -> LwkNetwork.mainnet()
         WalletAbiNetwork.TESTNET_LIQUID -> LwkNetwork.testnet()
@@ -169,7 +169,7 @@ internal fun WalletAbiNetwork.toLwkNetwork(): LwkNetwork {
     }
 }
 
-internal fun com.blockstream.common.gdk.data.Network.toWalletAbiNetworkOrNull(): WalletAbiNetwork? {
+ fun com.blockstream.common.gdk.data.Network.toWalletAbiNetworkOrNull(): WalletAbiNetwork? {
     if (!isLiquid) {
         return null
     }
@@ -276,7 +276,7 @@ private fun Account.matchesWalletAbiNetwork(requestNetwork: WalletAbiNetwork): B
     }
 }
 
-internal class WalletAbiExecutionContextException(
+ class WalletAbiExecutionContextException(
     message: String,
     cause: Throwable? = null,
 ) : IllegalStateException(message, cause)

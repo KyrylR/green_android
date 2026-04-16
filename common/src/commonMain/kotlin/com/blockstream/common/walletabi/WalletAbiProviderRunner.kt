@@ -23,16 +23,16 @@ import lwk.WalletSessionFactoryLink
 private const val WALLET_ABI_PROCESS_REQUEST_METHOD = "wallet_abi_process_request"
 private const val WALLET_ABI_HARDENED_BIT_LONG = 0x8000_0000L
 
-internal data class WalletAbiProviderRunResult(
+ data class WalletAbiProviderRunResult(
     val response: WalletAbiTxCreateResponse,
     val responseJson: String,
 )
 
-internal data class WalletAbiProviderJsonRpcRunResult(
+ data class WalletAbiProviderJsonRpcRunResult(
     val resultJson: String,
 )
 
-internal interface WalletAbiProviderRunning {
+ interface WalletAbiProviderRunning {
     suspend fun run(
         context: WalletAbiExecutionContext,
         request: WalletAbiTxCreateRequest,
@@ -45,7 +45,7 @@ internal interface WalletAbiProviderRunning {
     ): WalletAbiProviderJsonRpcRunResult
 }
 
-internal class WalletAbiProviderRunner(
+ class WalletAbiProviderRunner(
     private val json: Json,
     private val esploraHttpClient: WalletAbiEsploraHttpClient,
 ) : WalletAbiProviderRunning {
@@ -161,7 +161,7 @@ internal class WalletAbiProviderRunner(
     }
 }
 
-internal fun parseWalletAbiJsonRpcDispatch(
+ fun parseWalletAbiJsonRpcDispatch(
     json: Json,
     requestEnvelopeJson: String,
 ): Pair<String, String> {
@@ -185,7 +185,7 @@ internal fun parseWalletAbiJsonRpcDispatch(
     return method to (envelope["params"]?.toString() ?: "{}")
 }
 
-internal fun Account.walletAbiAccountIndex(): UInt {
+ fun Account.walletAbiAccountIndex(): UInt {
     derivationPath
         ?.lastOrNull()
         ?.let { child ->

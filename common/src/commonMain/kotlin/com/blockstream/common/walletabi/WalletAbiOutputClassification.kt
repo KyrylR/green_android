@@ -8,14 +8,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
-internal enum class WalletAbiOutputClassification {
+enum class WalletAbiOutputClassification {
     EXTERNAL,
     WALLET_RECEIVE,
     OP_RETURN,
     UNKNOWN,
 }
 
-internal fun classifyWalletAbiOutput(output: WalletAbiOutputSchema): WalletAbiOutputClassification {
+ fun classifyWalletAbiOutput(output: WalletAbiOutputSchema): WalletAbiOutputClassification {
     val lockObject = output.lock as? JsonObject ?: output.lock.jsonObject
     return when (lockObject["type"]?.jsonPrimitive?.content) {
         "finalizer" -> when (lockObject["finalizer"]?.jsonObject?.get("type")?.jsonPrimitive?.content) {
@@ -46,7 +46,7 @@ internal fun classifyWalletAbiOutput(output: WalletAbiOutputSchema): WalletAbiOu
     }
 }
 
-internal suspend fun resolveWalletAbiOutputClassification(
+ suspend fun resolveWalletAbiOutputClassification(
     output: WalletAbiOutputSchema,
     walletOwnedDestinationDetector: suspend (WalletAbiOutputSchema) -> Boolean = { false },
 ): WalletAbiOutputClassification {

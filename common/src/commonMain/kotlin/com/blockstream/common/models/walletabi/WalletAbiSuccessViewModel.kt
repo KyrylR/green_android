@@ -1,11 +1,11 @@
 package com.blockstream.common.models.walletabi
 
 import com.blockstream.common.data.GreenWallet
-import com.blockstream.common.extensions.previewWallet
-import com.blockstream.common.models.GreenViewModel
-import com.blockstream.common.sideeffects.SideEffects
-import com.blockstream.ui.navigation.NavData
-import com.rickclephas.kmp.observableviewmodel.MutableStateFlow
+import com.blockstream.compose.extensions.previewWallet
+import com.blockstream.compose.models.GreenViewModel
+import com.blockstream.compose.navigation.NavData
+import com.blockstream.compose.sideeffects.SideEffects
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 

@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-internal class AndroidWalletAbiWalletConnectBridge(
+ class AndroidWalletAbiWalletConnectBridge(
     private val application: Application,
     private val appConfig: AppConfig,
 ) : Loggable(), WalletAbiWalletConnectBridge {

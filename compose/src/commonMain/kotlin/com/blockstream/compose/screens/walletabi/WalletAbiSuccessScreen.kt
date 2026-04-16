@@ -27,6 +27,7 @@ import com.blockstream.compose.components.GreenButtonColor
 import com.blockstream.compose.components.GreenButtonSize
 import com.blockstream.compose.components.GreenButtonType
 import com.blockstream.compose.components.GreenCard
+import com.blockstream.compose.components.GreenColumn
 import com.blockstream.compose.theme.MonospaceFont
 import com.blockstream.compose.theme.bodyMedium
 import com.blockstream.compose.theme.bodySmall
@@ -36,7 +37,6 @@ import com.blockstream.compose.theme.md_theme_surface
 import com.blockstream.compose.theme.titleSmall
 import com.blockstream.compose.theme.whiteMedium
 import com.blockstream.compose.utils.SetupScreen
-import com.blockstream.ui.components.GreenColumn
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable

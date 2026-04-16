@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal enum class WalletAbiGetterPermission {
+ enum class WalletAbiGetterPermission {
     @SerialName("get_signer_receive_address")
     GET_SIGNER_RECEIVE_ADDRESS,
 
@@ -12,7 +12,7 @@ internal enum class WalletAbiGetterPermission {
     GET_RAW_SIGNING_X_ONLY_PUBKEY,
 }
 
-internal data class WalletAbiProposalValidation(
+ data class WalletAbiProposalValidation(
     val chainId: String,
     val requestedMethods: List<String>,
 )
@@ -22,7 +22,7 @@ private val WALLET_ABI_AUTO_APPROVED_GETTER_METHODS = mapOf(
     WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY to WalletAbiGetterPermission.GET_RAW_SIGNING_X_ONLY_PUBKEY,
 )
 
-internal fun walletAbiAutoApprovedGettersForRequestedMethods(
+ fun walletAbiAutoApprovedGettersForRequestedMethods(
     requestedMethods: Collection<String>,
 ): Set<WalletAbiGetterPermission> {
     return requestedMethods.mapNotNullTo(linkedSetOf()) { method ->
@@ -30,22 +30,22 @@ internal fun walletAbiAutoApprovedGettersForRequestedMethods(
     }
 }
 
-internal fun mergeWalletAbiApprovedGetters(
+ fun mergeWalletAbiApprovedGetters(
     approvedGetters: Set<WalletAbiGetterPermission>,
     requestedMethods: Collection<String>,
 ): Set<WalletAbiGetterPermission> {
     return approvedGetters + walletAbiAutoApprovedGettersForRequestedMethods(requestedMethods)
 }
 
-internal fun normalizeWalletConnectPairingUri(input: String): String {
+ fun normalizeWalletConnectPairingUri(input: String): String {
     return input.toWalletConnectPairingUri()
 }
 
-internal fun walletConnectPairingTopic(pairingUri: String): String {
+ fun walletConnectPairingTopic(pairingUri: String): String {
     return pairingUri.toWalletConnectPairingTopic()
 }
 
-internal fun validateWalletAbiProposal(
+ fun validateWalletAbiProposal(
     proposal: WalletAbiSessionProposal,
 ): WalletAbiProposalValidation {
     val namespace = proposal.requiredNamespaces[WALLET_ABI_WALLETCONNECT_NAMESPACE]

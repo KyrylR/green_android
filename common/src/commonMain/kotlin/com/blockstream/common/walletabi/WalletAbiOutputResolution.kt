@@ -10,30 +10,30 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import lwk.Transaction
 
-internal fun resolveWalletAbiAssetId(asset: JsonElement): String {
+ fun resolveWalletAbiAssetId(asset: JsonElement): String {
     return asset.jsonObject["asset_id"]?.jsonPrimitive?.content
         ?: asset.jsonObject["assetId"]?.jsonPrimitive?.content
         ?: "unknown"
 }
 
-internal fun walletAbiAssetIdNeedsResolution(asset: JsonElement): Boolean {
+ fun walletAbiAssetIdNeedsResolution(asset: JsonElement): Boolean {
     val assetObject = asset as? JsonObject ?: return true
     return assetObject["asset_id"]?.jsonPrimitive?.contentOrNull.isNullOrBlank() &&
         assetObject["assetId"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()
 }
 
-internal fun walletAbiRequestNeedsResolution(txRequest: WalletAbiTxCreateRequest): Boolean {
+ fun walletAbiRequestNeedsResolution(txRequest: WalletAbiTxCreateRequest): Boolean {
     return txRequest.params.outputs.any { output ->
         walletAbiAssetIdNeedsResolution(output.asset)
     }
 }
 
-internal data class WalletAbiResolvedTransactionOutput(
+ data class WalletAbiResolvedTransactionOutput(
     val assetId: String?,
     val scriptHex: String?,
 )
 
-internal fun walletAbiResolvedOutputsFromTransactionHex(txHex: String): List<WalletAbiResolvedTransactionOutput> {
+ fun walletAbiResolvedOutputsFromTransactionHex(txHex: String): List<WalletAbiResolvedTransactionOutput> {
     val transaction = runCatching { Transaction.fromString(txHex) }.getOrNull() ?: return emptyList()
     val outputs = runCatching { transaction.outputs() }.getOrNull() ?: return emptyList()
     return outputs.map { output ->
@@ -52,7 +52,7 @@ internal fun walletAbiResolvedOutputsFromTransactionHex(txHex: String): List<Wal
     }
 }
 
-internal fun walletAbiTxRequestWithResolvedOutputs(
+ fun walletAbiTxRequestWithResolvedOutputs(
     txRequest: WalletAbiTxCreateRequest,
     resolvedOutputs: List<WalletAbiResolvedTransactionOutput>,
 ): WalletAbiTxCreateRequest {

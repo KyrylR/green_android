@@ -13,7 +13,7 @@ private const val WALLET_ABI_SESSION_ERROR_MESSAGE_MAX_CHARS = 900
 private const val WALLET_ABI_SESSION_PROCESSING_FAILED_MAX_CHARS = 1400
 private const val WALLET_ABI_TRACE_DELIMITER = " | trace:"
 
-internal sealed interface WalletAbiProcessResult {
+ sealed interface WalletAbiProcessResult {
     data class Ok(
         val response: WalletAbiTxCreateResponse,
         val responseJson: String,
@@ -31,7 +31,7 @@ internal sealed interface WalletAbiProcessResult {
     ) : WalletAbiProcessResult
 }
 
-internal class WalletAbiProcessor(
+ class WalletAbiProcessor(
     private val json: Json,
     private val executionContextResolver: WalletAbiExecutionContextResolving,
     private val providerRunner: WalletAbiProviderRunning,
@@ -155,7 +155,7 @@ internal class WalletAbiProcessor(
     }
 }
 
-internal fun buildWalletAbiExceptionDetails(error: Throwable): String {
+ fun buildWalletAbiExceptionDetails(error: Throwable): String {
     val chain = generateSequence(error) { it.cause }
         .take(5)
         .joinToString(separator = " <- ") { throwable ->
@@ -179,7 +179,7 @@ internal fun buildWalletAbiExceptionDetails(error: Throwable): String {
     }
 }
 
-internal fun sanitizeWalletAbiErrorForSessionResponse(error: WalletAbiErrorInfo): WalletAbiErrorInfo {
+ fun sanitizeWalletAbiErrorForSessionResponse(error: WalletAbiErrorInfo): WalletAbiErrorInfo {
     val traceRemovedMessage = error.message.removeWalletAbiTraceSection()
     val compactMessage = traceRemovedMessage.compactForSessionResponse(WALLET_ABI_SESSION_ERROR_MESSAGE_MAX_CHARS)
     val safeMessage = if (compactMessage != traceRemovedMessage || traceRemovedMessage != error.message) {
@@ -195,7 +195,7 @@ internal fun sanitizeWalletAbiErrorForSessionResponse(error: WalletAbiErrorInfo)
     )
 }
 
-internal fun String.removeWalletAbiTraceSection(): String {
+ fun String.removeWalletAbiTraceSection(): String {
     val markerIndex = indexOf(WALLET_ABI_TRACE_DELIMITER)
     return if (markerIndex >= 0) {
         substring(0, markerIndex)

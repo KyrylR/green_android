@@ -1,17 +1,17 @@
 package com.blockstream.common.walletabi
 
-internal const val WALLET_ABI_WALLETCONNECT_NAMESPACE = "walabi"
-internal const val WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS = "get_signer_receive_address"
-internal const val WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY = "get_raw_signing_x_only_pubkey"
-internal const val WALLET_ABI_METHOD_PROCESS_REQUEST = "wallet_abi_process_request"
+ const val WALLET_ABI_WALLETCONNECT_NAMESPACE = "walabi"
+ const val WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS = "get_signer_receive_address"
+ const val WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY = "get_raw_signing_x_only_pubkey"
+ const val WALLET_ABI_METHOD_PROCESS_REQUEST = "wallet_abi_process_request"
 
-internal val WALLET_ABI_WALLETCONNECT_METHODS = setOf(
+ val WALLET_ABI_WALLETCONNECT_METHODS = setOf(
     WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS,
     WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY,
     WALLET_ABI_METHOD_PROCESS_REQUEST,
 )
 
-internal val WALLET_ABI_WALLETCONNECT_CHAINS = setOf(
+ val WALLET_ABI_WALLETCONNECT_CHAINS = setOf(
     "walabi:liquid",
     "walabi:testnet-liquid",
     "walabi:localtest-liquid",
@@ -19,34 +19,34 @@ internal val WALLET_ABI_WALLETCONNECT_CHAINS = setOf(
 
 private const val WALLET_ABI_ANDROID_ONLY_MESSAGE = "WalletConnect Wallet ABI is only available on Android"
 
-internal enum class WalletAbiSessionState {
+ enum class WalletAbiSessionState {
     CONNECTED,
     CLOSED,
     EXPIRED,
     ERROR,
 }
 
-internal data class WalletAbiVerifyLook(
+ data class WalletAbiVerifyLook(
     val origin: String?,
     val validation: String?,
     val verifyUrl: String?,
     val isScam: Boolean?,
 )
 
-internal data class WalletAbiSessionNamespaceProposal(
+ data class WalletAbiSessionNamespaceProposal(
     val chains: List<String>,
     val methods: List<String>,
     val events: List<String>,
 )
 
-internal data class WalletAbiSessionNamespace(
+ data class WalletAbiSessionNamespace(
     val chains: List<String>,
     val accounts: List<String>,
     val methods: List<String>,
     val events: List<String>,
 )
 
-internal data class WalletAbiSessionProposal(
+ data class WalletAbiSessionProposal(
     val pairingTopic: String,
     val proposerPublicKey: String,
     val name: String?,
@@ -62,7 +62,7 @@ internal data class WalletAbiSessionProposal(
     val verifyContext: WalletAbiVerifyLook?,
 )
 
-internal data class WalletAbiSessionInfo(
+ data class WalletAbiSessionInfo(
     val topic: String,
     val expiry: Long,
     val name: String?,
@@ -74,7 +74,7 @@ internal data class WalletAbiSessionInfo(
     val namespaces: Map<String, WalletAbiSessionNamespace>,
 )
 
-internal data class WalletAbiSessionRequest(
+ data class WalletAbiSessionRequest(
     val topic: String,
     val chainId: String?,
     val requestId: Long,
@@ -87,14 +87,14 @@ internal data class WalletAbiSessionRequest(
     val verifyContext: WalletAbiVerifyLook?,
 )
 
-internal data class WalletAbiSessionApproval(
+ data class WalletAbiSessionApproval(
     val relayProtocol: String?,
     val namespaces: Map<String, WalletAbiSessionNamespace>,
     val properties: Map<String, String>?,
     val scopedProperties: Map<String, String>?,
 )
 
-internal interface WalletAbiWalletConnectBridgeListener {
+ interface WalletAbiWalletConnectBridgeListener {
     fun onSessionProposal(proposal: WalletAbiSessionProposal)
     fun onSessionRequest(request: WalletAbiSessionRequest)
     fun onSessionDelete(topic: String, reason: String)
@@ -102,7 +102,7 @@ internal interface WalletAbiWalletConnectBridgeListener {
     fun onError(message: String)
 }
 
-internal interface WalletAbiWalletConnectBridge {
+ interface WalletAbiWalletConnectBridge {
     suspend fun initialize()
     fun setListener(listener: WalletAbiWalletConnectBridgeListener?)
     suspend fun pair(uri: String)
@@ -116,7 +116,7 @@ internal interface WalletAbiWalletConnectBridge {
     suspend fun disconnect(topic: String)
 }
 
-internal class NoopWalletAbiWalletConnectBridge : WalletAbiWalletConnectBridge {
+ class NoopWalletAbiWalletConnectBridge : WalletAbiWalletConnectBridge {
     private var listener: WalletAbiWalletConnectBridgeListener? = null
 
     override suspend fun initialize() = Unit

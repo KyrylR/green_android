@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 import lwk.Script
 import lwk.TxOut
 
-internal class WalletAbiEsploraHttpClient(appInfo: AppInfo) :
+ class WalletAbiEsploraHttpClient(appInfo: AppInfo) :
     AppHttpClient(enableLogging = appInfo.isDevelopmentOrDebug) {
     suspend fun getTransaction(
         apiBaseUrl: String,
@@ -29,13 +29,13 @@ internal class WalletAbiEsploraHttpClient(appInfo: AppInfo) :
 }
 
 @Serializable
-internal data class WalletAbiEsploraTransaction(
+ data class WalletAbiEsploraTransaction(
     val txid: String? = null,
     val vout: List<WalletAbiEsploraVout> = emptyList(),
 )
 
 @Serializable
-internal data class WalletAbiEsploraVout(
+ data class WalletAbiEsploraVout(
     @SerialName("scriptpubkey")
     val scriptPubkey: String? = null,
     @SerialName("scriptpubkey_hex")
@@ -44,7 +44,7 @@ internal data class WalletAbiEsploraVout(
     val asset: String? = null,
 )
 
-internal fun String?.toWalletAbiEsploraApiBaseUrl(): String? {
+ fun String?.toWalletAbiEsploraApiBaseUrl(): String? {
     val trimmed = this?.trim()?.trimEnd('/') ?: return null
     if (trimmed.isBlank()) {
         return null
@@ -65,7 +65,7 @@ internal fun String?.toWalletAbiEsploraApiBaseUrl(): String? {
     return "$trimmed/api"
 }
 
-internal fun GdkNetwork.walletAbiEsploraApiBaseUrlOrNull(): String? {
+ fun GdkNetwork.walletAbiEsploraApiBaseUrlOrNull(): String? {
     explorerUrl.toWalletAbiEsploraApiBaseUrl()?.let { return it }
 
     return when (canonicalNetworkId) {
@@ -77,7 +77,7 @@ internal fun GdkNetwork.walletAbiEsploraApiBaseUrlOrNull(): String? {
     }
 }
 
-internal fun WalletAbiEsploraVout.toExplicitTxOutOrNull(): TxOut? {
+ fun WalletAbiEsploraVout.toExplicitTxOutOrNull(): TxOut? {
     val scriptHex = (scriptPubkey ?: scriptPubkeyHex).orEmpty().trim()
     val assetId = asset.orEmpty().trim()
     val amount = value?.takeIf { it >= 0L }?.toULong() ?: return null

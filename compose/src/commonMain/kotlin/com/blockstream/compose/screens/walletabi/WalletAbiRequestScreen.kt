@@ -18,9 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.blockstream.common.models.walletabi.WalletAbiRequestViewModelAbstract
 import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
-import com.blockstream.common.navigation.NavigateDestinations
-import com.blockstream.common.sideeffects.SideEffects
-import com.blockstream.common.utils.StringHolder
 import com.blockstream.common.models.walletabi.WalletAbiRequestImpactLook
 import com.blockstream.common.models.walletabi.WalletAbiRequestLook
 import com.blockstream.common.models.walletabi.WalletAbiRequestOutputLook
@@ -29,7 +26,12 @@ import com.blockstream.compose.components.GreenButtonColor
 import com.blockstream.compose.components.GreenButtonSize
 import com.blockstream.compose.components.GreenButtonType
 import com.blockstream.compose.components.GreenCard
+import com.blockstream.compose.components.GreenColumn
+import com.blockstream.compose.components.GreenRow
 import com.blockstream.compose.components.SlideToUnlock
+import com.blockstream.compose.navigation.NavigateDestinations
+import com.blockstream.compose.navigation.setResult
+import com.blockstream.compose.sideeffects.SideEffects
 import com.blockstream.compose.theme.bodyLarge
 import com.blockstream.compose.theme.bodyMedium
 import com.blockstream.compose.theme.bodySmall
@@ -40,9 +42,7 @@ import com.blockstream.compose.theme.titleMedium
 import com.blockstream.compose.theme.titleSmall
 import com.blockstream.compose.theme.whiteMedium
 import com.blockstream.compose.utils.SetupScreen
-import com.blockstream.ui.components.GreenColumn
-import com.blockstream.ui.components.GreenRow
-import com.blockstream.ui.navigation.setResult
+import com.blockstream.compose.utils.StringHolder
 
 @Composable
 fun WalletAbiRequestScreen(

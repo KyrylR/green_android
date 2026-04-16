@@ -1,6 +1,6 @@
 package com.blockstream.common.walletabi
 
-internal sealed interface WalletAbiPresentedResult {
+ sealed interface WalletAbiPresentedResult {
     data class Success(
         val message: String,
     ) : WalletAbiPresentedResult
@@ -11,7 +11,7 @@ internal sealed interface WalletAbiPresentedResult {
     ) : WalletAbiPresentedResult
 }
 
-internal class WalletAbiResultPresenter {
+ class WalletAbiResultPresenter {
     fun present(result: WalletAbiProcessResult): WalletAbiPresentedResult {
         return when (result) {
             is WalletAbiProcessResult.Ok -> {

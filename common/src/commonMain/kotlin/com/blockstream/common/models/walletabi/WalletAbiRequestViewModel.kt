@@ -1,9 +1,7 @@
 package com.blockstream.common.models.walletabi
 
+import androidx.lifecycle.viewModelScope
 import com.blockstream.common.data.GreenWallet
-import com.blockstream.common.extensions.previewWallet
-import com.blockstream.common.models.GreenViewModel
-import com.blockstream.common.sideeffects.SideEffects
 import com.blockstream.common.utils.StringHolder
 import com.blockstream.common.walletabi.WalletAbiActionOutcome
 import com.blockstream.common.walletabi.WalletAbiAccountOptionLook
@@ -17,13 +15,16 @@ import com.blockstream.common.walletabi.WalletAbiResolutionState
 import com.blockstream.common.walletabi.WalletAbiSessionCoordinator
 import com.blockstream.common.walletabi.WalletAbiSessionUiState
 import com.blockstream.common.walletabi.WalletAbiTransactionReviewLook
-import com.blockstream.ui.navigation.NavData
-import com.rickclephas.kmp.observableviewmodel.MutableStateFlow
-import com.rickclephas.kmp.observableviewmodel.launch
-import com.rickclephas.kmp.observableviewmodel.stateIn
+import com.blockstream.compose.extensions.previewWallet
+import com.blockstream.compose.models.GreenViewModel
+import com.blockstream.compose.navigation.NavData
+import com.blockstream.compose.sideeffects.SideEffects
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 

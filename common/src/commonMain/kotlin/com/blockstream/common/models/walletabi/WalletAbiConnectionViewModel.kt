@@ -1,10 +1,7 @@
 package com.blockstream.common.models.walletabi
 
+import androidx.lifecycle.viewModelScope
 import com.blockstream.common.data.GreenWallet
-import com.blockstream.common.extensions.previewWallet
-import com.blockstream.common.models.GreenViewModel
-import com.blockstream.common.navigation.NavigateDestinations
-import com.blockstream.common.sideeffects.SideEffects
 import com.blockstream.common.utils.StringHolder
 import com.blockstream.common.walletabi.WALLET_ABI_METHOD_GET_RAW_SIGNING_X_ONLY_PUBKEY
 import com.blockstream.common.walletabi.WALLET_ABI_METHOD_GET_SIGNER_RECEIVE_ADDRESS
@@ -16,14 +13,18 @@ import com.blockstream.common.walletabi.WalletAbiSessionCoordinator
 import com.blockstream.common.walletabi.WalletAbiSessionUiState
 import com.blockstream.common.walletabi.WalletAbiTransactCardLook
 import com.blockstream.common.walletabi.toTransactCardLook
-import com.blockstream.ui.navigation.NavData
-import com.blockstream.ui.sideeffects.SideEffect
-import com.rickclephas.kmp.observableviewmodel.MutableStateFlow
-import com.rickclephas.kmp.observableviewmodel.launch
-import com.rickclephas.kmp.observableviewmodel.stateIn
+import com.blockstream.compose.extensions.previewWallet
+import com.blockstream.compose.models.GreenViewModel
+import com.blockstream.compose.navigation.NavData
+import com.blockstream.compose.navigation.NavigateDestinations
+import com.blockstream.compose.sideeffects.SideEffect
+import com.blockstream.compose.sideeffects.SideEffects
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
@@ -66,7 +67,7 @@ class WalletAbiConnectionViewModel private constructor(
     override val screen: StateFlow<WalletAbiConnectionScreenLook> =
         sessionState.map { it.toConnectionScreenLook() }
             .stateIn(
-                viewModelScope = viewModelScope,
+                scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000L),
                 initialValue = WalletAbiSessionUiState().toConnectionScreenLook(),
             )

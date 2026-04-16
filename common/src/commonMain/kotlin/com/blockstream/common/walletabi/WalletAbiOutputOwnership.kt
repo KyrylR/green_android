@@ -12,12 +12,12 @@ import kotlinx.serialization.json.booleanOrNull
 
 private const val WALLET_ABI_PREVIOUS_ADDRESS_PAGE_LIMIT = 20
 
-internal data class WalletAbiKnownDestinationLookup(
+ data class WalletAbiKnownDestinationLookup(
     val addresses: Set<String> = emptySet(),
     val scripts: Set<String> = emptySet(),
 )
 
-internal suspend fun loadWalletAbiKnownDestinationLookup(
+ suspend fun loadWalletAbiKnownDestinationLookup(
     loadPreviousAddresses: suspend (lastPointer: Int?) -> PreviousAddresses,
 ): WalletAbiKnownDestinationLookup {
     val addresses = linkedSetOf<String>()
@@ -46,7 +46,7 @@ internal suspend fun loadWalletAbiKnownDestinationLookup(
     )
 }
 
-internal fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
+ fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
     result: ValidateAddressees,
 ): Boolean {
     if (!result.isValid) {
@@ -66,21 +66,21 @@ internal fun walletAbiValidatedAddresseeIndicatesWalletOwnership(
     }
 }
 
-internal fun walletAbiOutputMatchesKnownWalletScript(
+ fun walletAbiOutputMatchesKnownWalletScript(
     output: WalletAbiOutputSchema,
     knownScripts: Set<String>,
 ): Boolean {
     return walletAbiOutputScriptCandidates(output).any { it in knownScripts }
 }
 
-internal fun walletAbiOutputMatchesKnownWalletAddress(
+ fun walletAbiOutputMatchesKnownWalletAddress(
     output: WalletAbiOutputSchema,
     knownAddresses: Set<String>,
 ): Boolean {
     return walletAbiOutputAddressCandidates(output).any { it in knownAddresses }
 }
 
-internal fun walletAbiOutputMatchesKnownWalletDestination(
+ fun walletAbiOutputMatchesKnownWalletDestination(
     output: WalletAbiOutputSchema,
     knownDestinations: WalletAbiKnownDestinationLookup,
 ): Boolean {
@@ -93,7 +93,7 @@ internal fun walletAbiOutputMatchesKnownWalletDestination(
     )
 }
 
-internal fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
+ fun walletAbiOutputAddressCandidates(output: WalletAbiOutputSchema): Set<String> {
     val candidates = linkedSetOf<String>()
     collectWalletAbiAddressCandidates(
         element = output.lock,

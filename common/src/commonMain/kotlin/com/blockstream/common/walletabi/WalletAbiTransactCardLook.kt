@@ -10,7 +10,7 @@ data class WalletAbiTransactCardLook(
     val statusLabel: String,
 )
 
-internal fun WalletAbiSessionUiState.toTransactCardLook(): WalletAbiTransactCardLook? {
+ fun WalletAbiSessionUiState.toTransactCardLook(): WalletAbiTransactCardLook? {
     overlay?.let { currentOverlay ->
         return when (currentOverlay) {
             is WalletAbiOverlayLook.SessionProposalApproval -> WalletAbiTransactCardLook(

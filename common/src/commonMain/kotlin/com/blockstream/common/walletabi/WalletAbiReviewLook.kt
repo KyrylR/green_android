@@ -1,35 +1,5 @@
 package com.blockstream.common.walletabi
 
-import blockstream_green.common.generated.resources.Res
-import blockstream_green.common.generated.resources.id_approving_will_return_the_resolved_transaction
-import blockstream_green.common.generated.resources.id_broadcasting_will_submit_the_resolved_transaction
-import blockstream_green.common.generated.resources.id_exact_balance_impact_available
-import blockstream_green.common.generated.resources.id_external_destination
-import blockstream_green.common.generated.resources.id_finalizer_s
-import blockstream_green.common.generated.resources.id_input_d
-import blockstream_green.common.generated.resources.id_input_s_s
-import blockstream_green.common.generated.resources.id_opreturn_or_burnlike
-import blockstream_green.common.generated.resources.id_opreturn_or_burnlike_output
-import blockstream_green.common.generated.resources.id_other_outputs
-import blockstream_green.common.generated.resources.id_output_could_not_be_classified_safely
-import blockstream_green.common.generated.resources.id_output_d
-import blockstream_green.common.generated.resources.id_request_contains_opreturn_output
-import blockstream_green.common.generated.resources.id_request_includes_explicit_external_inputs_balance_impact_not_inferred
-import blockstream_green.common.generated.resources.id_request_pays_multiple_external_outputs
-import blockstream_green.common.generated.resources.id_request_will_sign_and_broadcast_transaction
-import blockstream_green.common.generated.resources.id_request_will_sign_but_not_broadcast
-import blockstream_green.common.generated.resources.id_requestderived_impact_summary_final_fee_change_may_change
-import blockstream_green.common.generated.resources.id_requestderived_impact_summary_preparing_exact
-import blockstream_green.common.generated.resources.id_resolve_transaction_to_review_final_asset_ids
-import blockstream_green.common.generated.resources.id_script_output
-import blockstream_green.common.generated.resources.id_script_s
-import blockstream_green.common.generated.resources.id_sent_away
-import blockstream_green.common.generated.resources.id_sent_back_to_wallet
-import blockstream_green.common.generated.resources.id_specific_external_outpoint_s
-import blockstream_green.common.generated.resources.id_unknown_destination
-import blockstream_green.common.generated.resources.id_unknown_output_s
-import blockstream_green.common.generated.resources.id_walletcontrolled_output_change_selftransfer
-import blockstream_green.common.generated.resources.id_walletselected_input_s
 import com.blockstream.common.gdk.GdkSession
 import com.blockstream.common.gdk.data.Account
 import com.blockstream.common.utils.toAmountLook
@@ -39,23 +9,21 @@ import com.blockstream.common.walletabi.transport.WalletAbiTxCreateRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.getString
 
 @Serializable
-internal data class WalletAbiAccountOptionLook(
+data class WalletAbiAccountOptionLook(
     val id: String,
     val name: String,
 )
 
 @Serializable
-internal data class WalletAbiInputReviewLook(
+data class WalletAbiInputReviewLook(
     val label: String,
     val detail: String,
 )
 
 @Serializable
-internal data class WalletAbiInputSourceSummaryLook(
+data class WalletAbiInputSourceSummaryLook(
     val walletSelectedInputCount: Int,
     val explicitExternalInputCount: Int,
     val otherInputCount: Int,
@@ -65,7 +33,7 @@ internal data class WalletAbiInputSourceSummaryLook(
 }
 
 @Serializable
-internal enum class WalletAbiExactImpactState {
+enum class WalletAbiExactImpactState {
     REQUEST_DERIVED,
     PENDING,
     READY,
@@ -73,14 +41,14 @@ internal enum class WalletAbiExactImpactState {
 }
 
 @Serializable
-internal enum class WalletAbiResolutionState {
+enum class WalletAbiResolutionState {
     NOT_REQUIRED,
     REQUIRED,
     RESOLVED,
 }
 
 @Serializable
-internal data class WalletAbiImpactAssetLook(
+data class WalletAbiImpactAssetLook(
     val assetId: String,
     val assetLabel: String,
     val sentAway: String,
@@ -91,14 +59,14 @@ internal data class WalletAbiImpactAssetLook(
 )
 
 @Serializable
-internal data class WalletAbiCompactImpactSummaryLook(
+data class WalletAbiCompactImpactSummaryLook(
     val sentAway: String,
     val sentBackToWallet: String,
     val additionalAssetCount: Int,
 )
 
 @Serializable
-internal data class WalletAbiOutputReviewLook(
+data class WalletAbiOutputReviewLook(
     val label: String,
     val amount: String,
     val detail: String,
@@ -106,7 +74,7 @@ internal data class WalletAbiOutputReviewLook(
 )
 
 @Serializable
-internal data class WalletAbiTransactionReviewLook(
+data class WalletAbiTransactionReviewLook(
     val origin: String,
     val requestId: String,
     val network: String,
@@ -124,60 +92,53 @@ internal data class WalletAbiTransactionReviewLook(
     val warnings: List<String>,
 )
 
-internal data class WalletAbiOutputImpactTotals(
+data class WalletAbiOutputImpactTotals(
     val assetId: String,
     val sentAwaySat: Long,
     val sentBackToWalletSat: Long,
     val otherOutputsSat: Long,
 )
 
-internal data class WalletAbiResolvedOutputReview(
+data class WalletAbiResolvedOutputReview(
     val assetId: String,
     val amountSat: Long,
     val classification: WalletAbiOutputClassification,
     val detail: String,
 )
 
-internal suspend fun walletAbiOutputDetail(
+ suspend fun walletAbiOutputDetail(
     output: WalletAbiOutputSchema,
     classification: WalletAbiOutputClassification,
 ): String {
     val destination = walletAbiOutputDestination(output)
     return when (classification) {
-        WalletAbiOutputClassification.WALLET_RECEIVE ->
-            getString(Res.string.id_walletcontrolled_output_change_selftransfer)
-
-        WalletAbiOutputClassification.OP_RETURN ->
-            getString(Res.string.id_opreturn_or_burnlike_output)
-
-        WalletAbiOutputClassification.UNKNOWN ->
-            getString(Res.string.id_unknown_output_s, destination)
+        WalletAbiOutputClassification.WALLET_RECEIVE -> "Wallet-controlled output (change / self-transfer)"
+        WalletAbiOutputClassification.OP_RETURN -> "OP_RETURN or burn-like output"
+        WalletAbiOutputClassification.UNKNOWN -> "Unknown output: $destination"
 
         WalletAbiOutputClassification.EXTERNAL -> destination
     }
 }
 
-internal suspend fun walletAbiOutputDestination(output: WalletAbiOutputSchema): String {
+ suspend fun walletAbiOutputDestination(output: WalletAbiOutputSchema): String {
     return when (output.lock.jsonObject["type"]?.jsonPrimitive?.content) {
         "script" -> {
             val script = output.lock.jsonObject["script"]?.jsonPrimitive?.content
-            script?.takeIf { it.isNotBlank() }?.let {
-                getString(Res.string.id_script_s, it.take(20))
-            } ?: getString(Res.string.id_script_output)
+            script?.takeIf { it.isNotBlank() }?.let { "Script ${it.take(20)}" } ?: "Script output"
         }
 
         "finalizer" -> {
             val finalizerType = output.lock.jsonObject["finalizer"]?.jsonObject?.get("type")
                 ?.jsonPrimitive
                 ?.content
-            getString(Res.string.id_finalizer_s, finalizerType ?: "unknown")
+            "Finalizer ${finalizerType ?: "unknown"}"
         }
 
-        else -> getString(Res.string.id_unknown_destination)
+        else -> "Unknown destination"
     }
 }
 
-internal suspend fun formatWalletAbiReviewAmount(
+ suspend fun formatWalletAbiReviewAmount(
     session: GdkSession,
     amountSat: Long,
     assetId: String,
@@ -195,7 +156,7 @@ internal suspend fun formatWalletAbiReviewAmount(
     )
 }
 
-internal fun resolveWalletAbiAssetLabel(
+ fun resolveWalletAbiAssetLabel(
     session: GdkSession?,
     assetId: String,
     account: Account,
@@ -207,7 +168,7 @@ internal fun resolveWalletAbiAssetLabel(
     )
 }
 
-internal fun buildWalletAbiInputSourceSummary(
+ fun buildWalletAbiInputSourceSummary(
     inputs: List<WalletAbiInputSchema>,
 ): WalletAbiInputSourceSummaryLook {
     var walletSelectedCount = 0
@@ -229,7 +190,7 @@ internal fun buildWalletAbiInputSourceSummary(
     )
 }
 
-internal fun aggregateWalletAbiOutputImpacts(
+ fun aggregateWalletAbiOutputImpacts(
     outputs: List<WalletAbiOutputSchema>,
     policyAssetId: String,
 ): List<WalletAbiOutputImpactTotals> {
@@ -272,7 +233,7 @@ internal fun aggregateWalletAbiOutputImpacts(
     }
 }
 
-internal fun aggregateWalletAbiResolvedOutputImpacts(
+ fun aggregateWalletAbiResolvedOutputImpacts(
     outputs: List<WalletAbiResolvedOutputReview>,
     policyAssetId: String,
 ): List<WalletAbiOutputImpactTotals> {
@@ -314,7 +275,7 @@ internal fun aggregateWalletAbiResolvedOutputImpacts(
     }
 }
 
-internal fun walletAbiCompactImpactSummary(
+ fun walletAbiCompactImpactSummary(
     review: WalletAbiTransactionReviewLook,
 ): WalletAbiCompactImpactSummaryLook? {
     val primaryAsset = review.impactAssets.firstOrNull() ?: return null
@@ -325,28 +286,25 @@ internal fun walletAbiCompactImpactSummary(
     )
 }
 
-internal suspend fun walletAbiStatusMessage(
+ suspend fun walletAbiStatusMessage(
     previewResult: WalletAbiImpactPreviewResult,
     resolutionState: WalletAbiResolutionState,
 ): String {
     if (resolutionState == WalletAbiResolutionState.REQUIRED) {
-        return getString(Res.string.id_resolve_transaction_to_review_final_asset_ids)
+        return "Resolve the transaction to review final asset ids"
     }
 
     return previewResult.statusMessage ?: when (previewResult.state) {
-        WalletAbiExactImpactState.READY ->
-            getString(Res.string.id_exact_balance_impact_available)
-
-        WalletAbiExactImpactState.PENDING ->
-            getString(Res.string.id_requestderived_impact_summary_preparing_exact)
+        WalletAbiExactImpactState.READY -> "Exact balance impact available"
+        WalletAbiExactImpactState.PENDING -> "Preparing exact balance impact"
 
         WalletAbiExactImpactState.REQUEST_DERIVED,
         WalletAbiExactImpactState.UNAVAILABLE,
-        -> getString(Res.string.id_requestderived_impact_summary_final_fee_change_may_change)
+        -> "Balance impact derived from request; the final fee may still change"
     }
 }
 
-internal suspend fun buildWalletAbiTransactionReview(
+ suspend fun buildWalletAbiTransactionReview(
     origin: String,
     txRequest: WalletAbiTxCreateRequest,
     accounts: List<Account>,
@@ -372,7 +330,7 @@ internal suspend fun buildWalletAbiTransactionReview(
 
     val outputs = resolvedOutputs.mapIndexed { index, output ->
         WalletAbiOutputReviewLook(
-            label = getString(Res.string.id_output_d, index + 1),
+            label = "Output ${index + 1}",
             amount = amountFormatter(output.amountSat, output.assetId, selectedAccount),
             detail = output.detail,
             classification = output.classification,
@@ -414,7 +372,7 @@ internal suspend fun buildWalletAbiTransactionReview(
         selectedAccountName = selectedAccount.name,
         inputs = txRequest.params.inputs.mapIndexed { index, input ->
             WalletAbiInputReviewLook(
-                label = getString(Res.string.id_input_d, index + 1),
+                label = "Input ${index + 1}",
                 detail = describeWalletAbiInput(input),
             )
         },
@@ -435,7 +393,7 @@ internal suspend fun buildWalletAbiTransactionReview(
     )
 }
 
-internal suspend fun buildWalletAbiWarnings(
+ suspend fun buildWalletAbiWarnings(
     txRequest: WalletAbiTxCreateRequest,
     outputs: List<WalletAbiOutputReviewLook>,
     inputSourceSummary: WalletAbiInputSourceSummaryLook,
@@ -444,70 +402,62 @@ internal suspend fun buildWalletAbiWarnings(
     val warnings = mutableListOf<String>()
 
     warnings += if (resolutionState == WalletAbiResolutionState.REQUIRED) {
-        getString(Res.string.id_resolve_transaction_to_review_final_asset_ids)
+        "Resolve the transaction to review final asset ids"
     } else if (txRequest.broadcast) {
-        getString(
-            if (resolutionState == WalletAbiResolutionState.RESOLVED) {
-                Res.string.id_broadcasting_will_submit_the_resolved_transaction
-            } else {
-                Res.string.id_request_will_sign_and_broadcast_transaction
-            },
-        )
+        if (resolutionState == WalletAbiResolutionState.RESOLVED) {
+            "Broadcasting will submit the resolved transaction"
+        } else {
+            "Request will sign and broadcast the transaction"
+        }
     } else {
-        getString(
-            if (resolutionState == WalletAbiResolutionState.RESOLVED) {
-                Res.string.id_approving_will_return_the_resolved_transaction
-            } else {
-                Res.string.id_request_will_sign_but_not_broadcast
-            },
-        )
+        if (resolutionState == WalletAbiResolutionState.RESOLVED) {
+            "Approving will return the resolved transaction"
+        } else {
+            "Request will sign but not broadcast"
+        }
     }
 
     if (outputs.any { it.classification == WalletAbiOutputClassification.OP_RETURN }) {
-        warnings += getString(Res.string.id_request_contains_opreturn_output)
+        warnings += "Request contains OP_RETURN output"
     }
     if (outputs.count { it.classification == WalletAbiOutputClassification.EXTERNAL } > 1) {
-        warnings += getString(Res.string.id_request_pays_multiple_external_outputs)
+        warnings += "Request pays multiple external outputs"
     }
     if (outputs.any { it.classification == WalletAbiOutputClassification.UNKNOWN }) {
-        warnings += getString(Res.string.id_output_could_not_be_classified_safely)
+        warnings += "Output could not be classified safely"
     }
     if (inputSourceSummary.hasExplicitExternalInputs) {
-        warnings += getString(
-            Res.string.id_request_includes_explicit_external_inputs_balance_impact_not_inferred,
-        )
+        warnings += "Request includes explicit external inputs; balance impact was not inferred"
     }
 
     return warnings.distinct()
 }
 
-internal suspend fun describeWalletAbiInput(input: WalletAbiInputSchema): String {
+ suspend fun describeWalletAbiInput(input: WalletAbiInputSchema): String {
     val source = input.utxoSource.jsonObject["type"]?.jsonPrimitive?.content ?: "unknown"
     return when (source) {
-        "wallet" -> getString(Res.string.id_walletselected_input_s, input.id)
-        "outpoint" -> getString(Res.string.id_specific_external_outpoint_s, input.id)
-        else -> getString(Res.string.id_input_s_s, input.id, source)
+        "wallet" -> "Wallet-selected input ${input.id}"
+        "outpoint" -> "Specific external outpoint ${input.id}"
+        else -> "Input ${input.id} ($source)"
     }
 }
 
-internal fun walletAbiOutputSectionTitle(classification: WalletAbiOutputClassification): StringResource {
+ fun walletAbiOutputSectionTitle(classification: WalletAbiOutputClassification): String {
     return when (classification) {
-        WalletAbiOutputClassification.EXTERNAL -> Res.string.id_sent_away
-        WalletAbiOutputClassification.WALLET_RECEIVE -> Res.string.id_sent_back_to_wallet
+        WalletAbiOutputClassification.EXTERNAL -> "Sent away"
+        WalletAbiOutputClassification.WALLET_RECEIVE -> "Sent back to wallet"
         WalletAbiOutputClassification.OP_RETURN,
         WalletAbiOutputClassification.UNKNOWN,
-        -> Res.string.id_other_outputs
+        -> "Other outputs"
     }
 }
 
-internal fun walletAbiOutputClassificationLabel(classification: WalletAbiOutputClassification): StringResource {
+ fun walletAbiOutputClassificationLabel(classification: WalletAbiOutputClassification): String {
     return when (classification) {
-        WalletAbiOutputClassification.EXTERNAL -> Res.string.id_external_destination
-        WalletAbiOutputClassification.WALLET_RECEIVE ->
-            Res.string.id_walletcontrolled_output_change_selftransfer
-
-        WalletAbiOutputClassification.OP_RETURN -> Res.string.id_opreturn_or_burnlike
-        WalletAbiOutputClassification.UNKNOWN -> Res.string.id_unknown_destination
+        WalletAbiOutputClassification.EXTERNAL -> "External destination"
+        WalletAbiOutputClassification.WALLET_RECEIVE -> "Wallet-controlled output (change / self-transfer)"
+        WalletAbiOutputClassification.OP_RETURN -> "OP_RETURN or burn-like"
+        WalletAbiOutputClassification.UNKNOWN -> "Unknown destination"
     }
 }
 

@@ -31,7 +31,7 @@ data class WalletAbiTransactionDetailsLook(
     val warnings: List<String>,
 )
 
-internal fun WalletAbiTransactionRecord.toDetailsLook(): WalletAbiTransactionDetailsLook {
+ fun WalletAbiTransactionRecord.toDetailsLook(): WalletAbiTransactionDetailsLook {
     return WalletAbiTransactionDetailsLook(
         origin = origin,
         network = review.network,

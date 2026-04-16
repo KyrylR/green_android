@@ -32,14 +32,14 @@ private const val WALLET_ABI_PROCESSING_FAILED_RPC_CODE = -32_000
 private const val WALLET_ABI_APPROVAL_POLL_ATTEMPTS = 20
 private const val WALLET_ABI_APPROVAL_POLL_DELAY_MS = 150L
 
-internal data class WalletAbiConnectionLook(
+ data class WalletAbiConnectionLook(
     val origin: String?,
     val network: String?,
     val state: WalletAbiSessionState?,
     val approvedGetters: Set<WalletAbiGetterPermission>,
 )
 
-internal sealed interface WalletAbiOverlayLook {
+ sealed interface WalletAbiOverlayLook {
     data class SessionProposalApproval(
         val origin: String,
         val network: String,
@@ -73,12 +73,12 @@ internal sealed interface WalletAbiOverlayLook {
     ) : WalletAbiOverlayLook
 }
 
-internal data class WalletAbiSessionUiState(
+ data class WalletAbiSessionUiState(
     val activeConnection: WalletAbiConnectionLook? = null,
     val overlay: WalletAbiOverlayLook? = null,
 )
 
-internal sealed interface WalletAbiActionOutcome {
+ sealed interface WalletAbiActionOutcome {
     data class Success(val message: String) : WalletAbiActionOutcome
     data class Error(val throwable: Throwable) : WalletAbiActionOutcome
 }
@@ -142,7 +142,7 @@ private data class WalletAbiRuntimeState(
     val completedRequestKeys: MutableSet<String> = linkedSetOf(),
 )
 
-internal class WalletAbiSessionCoordinator(
+ class WalletAbiSessionCoordinator(
     private val json: Json,
     private val executionContextResolver: WalletAbiExecutionContextResolving,
     private val walletAbiImpactPreviewer: WalletAbiImpactPreviewing,

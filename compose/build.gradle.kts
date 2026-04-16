@@ -48,40 +48,45 @@ kotlin {
             }
         }
 
-        commonMain.dependencies {
-            /**  --- Modules ---------------------------------------------------------------------------- */
-            api(project(":domain"))
-            /** ----------------------------------------------------------------------------------------- */
+        commonMain {
+            kotlin.srcDir("../common/src/commonMain/kotlin/com/blockstream/common/models/walletabi")
 
-            /**  --- Compose ---------------------------------------------------------------------------- */
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.components.uiToolingPreview)
-            implementation(compose.material)
-            implementation(compose.materialIconsExtended)
-            implementation(compose.material3)
-            implementation(libs.constraintlayout.compose.multiplatform)
-            implementation(libs.navigation.compose)
-            implementation(libs.compose.backhandler)
-            api(compose.components.resources)
-            /** ----------------------------------------------------------------------------------------- */
+            dependencies {
+                /**  --- Modules ---------------------------------------------------------------------------- */
+                api(project(":domain"))
+                /** ----------------------------------------------------------------------------------------- */
 
-            /**  --- Koin   ----------------------------------------------------------------------------- */
-            implementation(libs.koin.compose)
-            /** ----------------------------------------------------------------------------------------- */
+                /**  --- Compose ---------------------------------------------------------------------------- */
+                implementation(compose.runtime)
+                implementation(compose.foundation)
+                implementation(compose.ui)
+                implementation(compose.components.uiToolingPreview)
+                implementation(compose.material)
+                implementation(compose.materialIconsExtended)
+                implementation(compose.material3)
+                implementation(libs.constraintlayout.compose.multiplatform)
+                implementation(libs.navigation.compose)
+                implementation(libs.compose.backhandler)
+                api(compose.components.resources)
+                /** ----------------------------------------------------------------------------------------- */
 
-            /**  --- UI --------------------------------------------------------------------------------- */
-            implementation(libs.qrose)
-            implementation(libs.mpfilepicker)
-            implementation(libs.middle.ellipsis.text3)
-            implementation(libs.coil.compose)
-            implementation(libs.coil.svg)
-            implementation(libs.coil.test)
-            implementation(libs.coil.network.ktor3)
-            implementation(libs.phosphor.icon)
-            /** ----------------------------------------------------------------------------------------- */
-            implementation(libs.koalaplot.core)
+                /**  --- Koin   ----------------------------------------------------------------------------- */
+                implementation(libs.koin.compose)
+                implementation("com.rickclephas.kmp:kmp-observableviewmodel-core:1.0.0-BETA-10")
+                /** ----------------------------------------------------------------------------------------- */
+
+                /**  --- UI --------------------------------------------------------------------------------- */
+                implementation(libs.qrose)
+                implementation(libs.mpfilepicker)
+                implementation(libs.middle.ellipsis.text3)
+                implementation(libs.coil.compose)
+                implementation(libs.coil.svg)
+                implementation(libs.coil.test)
+                implementation(libs.coil.network.ktor3)
+                implementation(libs.phosphor.icon)
+                /** ----------------------------------------------------------------------------------------- */
+                implementation(libs.koalaplot.core)
+            }
         }
 
         val desktopMain by getting

@@ -6,6 +6,7 @@ import com.blockstream.common.gdk.data.Account
 import com.blockstream.common.gdk.data.InputOutput
 import com.blockstream.common.gdk.data.Utxo
 import com.blockstream.common.gdk.params.BroadcastTransactionParams
+import com.blockstream.network.NetworkResponse
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -38,13 +39,13 @@ import lwk.walletAbiOutputTemplateFromAddress
 
 private const val WALLET_ABI_HARDENED_BIT_LONG = 0x8000_0000L
 
-internal data class WalletAbiIndexedUtxo(
+ data class WalletAbiIndexedUtxo(
     val account: Account,
     val io: InputOutput,
     val utxo: Utxo,
 )
 
-internal class WalletAbiUtxoIndex {
+ class WalletAbiUtxoIndex {
     private val lock = Any()
     private val entries = mutableMapOf<String, WalletAbiIndexedUtxo>()
 
@@ -60,7 +61,7 @@ internal class WalletAbiUtxoIndex {
     }
 }
 
-internal class WalletAbiWalletSnapshotSupport(
+ class WalletAbiWalletSnapshotSupport(
     private val context: WalletAbiExecutionContext,
     private val esploraHttpClient: WalletAbiEsploraHttpClient,
     private val utxoIndex: WalletAbiUtxoIndex = WalletAbiUtxoIndex(),
@@ -233,8 +234,8 @@ internal class WalletAbiWalletSnapshotSupport(
             .forEach { network ->
                 val apiBaseUrl = network.walletAbiEsploraApiBaseUrlOrNull() ?: return@forEach
                 val transactionHex = when (val response = esploraHttpClient.getTransactionHex(apiBaseUrl, txid)) {
-                    is com.blockstream.green.network.NetworkResponse.Success -> response.data.trim()
-                    is com.blockstream.green.network.NetworkResponse.Error -> null
+                    is NetworkResponse.Success -> response.data.trim()
+                    is NetworkResponse.Error -> null
                 } ?: return@forEach
 
                 val transaction = runCatching { Transaction.fromString(transactionHex) }.getOrNull()
@@ -252,7 +253,7 @@ internal class WalletAbiWalletSnapshotSupport(
     }
 }
 
-internal fun walletAbiDerivationPath(
+ fun walletAbiDerivationPath(
     accountDerivationPath: List<Long>?,
     io: InputOutput,
 ): List<UInt>? {
@@ -265,7 +266,7 @@ internal fun walletAbiDerivationPath(
     return accountPath + derivation.chain.toWalletAbiPathChild() + derivation.wildcardIndex
 }
 
-internal fun InputOutput.toWalletAbiDerivation(): WalletAbiOutputDerivation {
+ fun InputOutput.toWalletAbiDerivation(): WalletAbiOutputDerivation {
     userPath
         ?.takeIf { it.size >= 2 }
         ?.let { path ->
@@ -289,7 +290,7 @@ internal fun InputOutput.toWalletAbiDerivation(): WalletAbiOutputDerivation {
     )
 }
 
-internal fun InputOutput.toWalletAbiExplicitTxOutOrNull(policyAsset: String): TxOut? {
+ fun InputOutput.toWalletAbiExplicitTxOutOrNull(policyAsset: String): TxOut? {
     val script = preferredScriptHex()
         ?.let { scriptHex ->
             runCatching { Script(scriptHex) }.getOrNull()
@@ -318,7 +319,7 @@ internal fun InputOutput.toWalletAbiExplicitTxOutOrNull(policyAsset: String): Tx
     )
 }
 
-internal fun InputOutput.preferredScriptHex(): String? {
+ fun InputOutput.preferredScriptHex(): String? {
     return sequenceOf(
         scriptPubkey,
         prevoutScript,
@@ -331,7 +332,7 @@ internal fun InputOutput.preferredScriptHex(): String? {
     }.firstOrNull()
 }
 
-internal fun String?.normalizedTxidHexOrNull(): String? {
+ fun String?.normalizedTxidHexOrNull(): String? {
     val raw = this?.trim().orEmpty()
     if (raw.isEmpty()) {
         return null
@@ -345,17 +346,17 @@ internal fun String?.normalizedTxidHexOrNull(): String? {
     return WALLET_ABI_TXID_HEX_REGEX.find(lowered)?.groupValues?.get(1)
 }
 
-internal fun OutPoint.txidHexOrNull(): String? {
+ fun OutPoint.txidHexOrNull(): String? {
     return txid().toString().normalizedTxidHexOrNull()
         ?: toString().normalizedTxidHexOrNull()
 }
 
-internal fun OutPoint.cacheKey(): String {
+ fun OutPoint.cacheKey(): String {
     val txidHex = txidHexOrNull() ?: txid().toString()
     return "$txidHex:${vout()}"
 }
 
-internal data class WalletAbiOutputDerivation(
+ data class WalletAbiOutputDerivation(
     val chain: Chain,
     val wildcardIndex: UInt,
 )
