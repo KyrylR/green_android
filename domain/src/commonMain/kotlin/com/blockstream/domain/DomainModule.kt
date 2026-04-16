@@ -2,6 +2,7 @@ package com.blockstream.domain
 
 import com.blockstream.common.walletabi.NoopWalletAbiImpactPreviewer
 import com.blockstream.common.walletabi.WalletAbiEsploraHttpClient
+import com.blockstream.common.walletabi.WalletAbiExecutionContextResolving
 import com.blockstream.common.walletabi.WalletAbiExecutionContextResolver
 import com.blockstream.common.walletabi.WalletAbiImpactPreviewing
 import com.blockstream.common.walletabi.WalletAbiProcessor
@@ -74,7 +75,7 @@ val domainModule = module {
             explicitNulls = false
         }
     }
-    single {
+    single<WalletAbiExecutionContextResolving> {
         WalletAbiExecutionContextResolver(get())
     }
     single {
