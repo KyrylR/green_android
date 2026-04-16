@@ -9,6 +9,7 @@ import androidx.navigation.NavDeepLink
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
+import com.blockstream.common.models.walletabi.WalletAbiSuccessLook
 import com.blockstream.compose.models.jade.JadeQrOperation
 import com.blockstream.compose.models.settings.WalletSettingsSection
 import com.blockstream.compose.models.sheets.NoteType
@@ -82,7 +83,8 @@ val AppTypeMap = mapOf(
     typeOf<com.blockstream.data.meld.data.QuotesResponse>() to CustomNavType.create<com.blockstream.data.meld.data.QuotesResponse>(),
     typeOf<EnrichedAsset>() to CustomNavType.create<EnrichedAsset>(),
     typeOf<EnrichedAssetList>() to CustomNavType.create<EnrichedAssetList>(),
-    typeOf<AccountAssetList>() to CustomNavType.create<AccountAssetList>()
+    typeOf<AccountAssetList>() to CustomNavType.create<AccountAssetList>(),
+    typeOf<WalletAbiSuccessLook>() to CustomNavType.create<WalletAbiSuccessLook>(),
 )
 
 inline fun <reified T : Any> NavGraphBuilder.appComposable(noinline content: @Composable (AnimatedContentScope.(NavBackStackEntry) -> Unit)) {
