@@ -30,6 +30,38 @@ class WalletSettingsManager(
         return getBoolean(walletId = walletId, key = KEY_TOTAL_BALANCE_IN_FIAT)
     }
 
+    suspend fun getWalletAbiFlowSnapshot(walletId: String): String? {
+        return getString(walletId = walletId, key = KEY_WALLET_ABI_FLOW_SNAPSHOT)
+    }
+
+    fun observeWalletAbiFlowSnapshot(walletId: String): Flow<String?> {
+        return getStringFlow(walletId = walletId, key = KEY_WALLET_ABI_FLOW_SNAPSHOT)
+    }
+
+    suspend fun setWalletAbiFlowSnapshot(walletId: String, snapshot: String) {
+        setString(walletId = walletId, key = KEY_WALLET_ABI_FLOW_SNAPSHOT, value = snapshot)
+    }
+
+    suspend fun clearWalletAbiFlowSnapshot(walletId: String) {
+        database.deleteWalletSetting(walletId = walletId, key = KEY_WALLET_ABI_FLOW_SNAPSHOT)
+    }
+
+    suspend fun getWalletAbiWalletConnectSnapshot(walletId: String): String? {
+        return getString(walletId = walletId, key = KEY_WALLET_ABI_WALLETCONNECT_SNAPSHOT)
+    }
+
+    fun observeWalletAbiWalletConnectSnapshot(walletId: String): Flow<String?> {
+        return getStringFlow(walletId = walletId, key = KEY_WALLET_ABI_WALLETCONNECT_SNAPSHOT)
+    }
+
+    suspend fun setWalletAbiWalletConnectSnapshot(walletId: String, snapshot: String) {
+        setString(walletId = walletId, key = KEY_WALLET_ABI_WALLETCONNECT_SNAPSHOT, value = snapshot)
+    }
+
+    suspend fun clearWalletAbiWalletConnectSnapshot(walletId: String) {
+        database.deleteWalletSetting(walletId = walletId, key = KEY_WALLET_ABI_WALLETCONNECT_SNAPSHOT)
+    }
+
     // Private methods
     private suspend fun getBoolean(walletId: String, key: String): Boolean {
         return database.getWalletSetting(walletId = walletId, key = key)?.let {
@@ -61,6 +93,10 @@ class WalletSettingsManager(
         return database.getWalletSetting(walletId = walletId, key = key)?.data_
     }
 
+    private fun getStringFlow(walletId: String, key: String): Flow<String?> {
+        return database.getWalletSettingFlow(walletId = walletId, key = key).map { it?.data_ }
+    }
+
     private suspend fun setString(walletId: String, key: String, value: String) {
         database.setWalletSetting(walletId = walletId, key = key, value)
     }
@@ -70,5 +106,7 @@ class WalletSettingsManager(
         const val FALSE_VALUE = "false"
         const val KEY_LIGHTNING_NODE_ID = "lightning_node_id"
         const val KEY_TOTAL_BALANCE_IN_FIAT = "total_balance_in_fiat"
+        const val KEY_WALLET_ABI_FLOW_SNAPSHOT = "wallet_abi_flow_snapshot"
+        const val KEY_WALLET_ABI_WALLETCONNECT_SNAPSHOT = "wallet_abi_walletconnect_snapshot"
     }
 }

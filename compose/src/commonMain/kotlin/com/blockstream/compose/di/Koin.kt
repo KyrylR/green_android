@@ -1,13 +1,17 @@
 package com.blockstream.compose.di
 
 import co.touchlab.kermit.Logger
+import com.blockstream.compose.models.walletabi.WalletAbiFlowRouteViewModel
+import com.blockstream.compose.navigation.WalletAbiFlowLaunchMode
 import com.blockstream.compose.navigation.NavigateToWallet
 import com.blockstream.data.btcpricehistory.btcPriceHistoryModule
 import com.blockstream.data.config.AppInfo
 import com.blockstream.data.data.AppConfig
+import com.blockstream.data.data.GreenWallet
 import com.blockstream.data.di.commonModule
 import com.blockstream.data.di.commonModules
 import com.blockstream.data.di.platformModule
+import com.blockstream.data.managers.SessionManager
 import com.blockstream.domain.domainModule
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
@@ -27,6 +31,21 @@ fun initKoin(appInfo: AppInfo, appConfig: AppConfig, doOnStartup: () -> Unit = {
                     doOnStartup
                 }
                 singleOf(::NavigateToWallet)
+                factory { (greenWallet: GreenWallet, launchMode: WalletAbiFlowLaunchMode) ->
+                    WalletAbiFlowRouteViewModel(
+                        greenWallet = greenWallet,
+                        launchMode = launchMode,
+                        store = get(),
+                        snapshotRepository = get(),
+                        walletSession = get<SessionManager>().getWalletSessionOrCreate(greenWallet),
+                        requestSource = get(),
+                        executionPlanner = get(),
+                        executionRunner = get(),
+                        reviewPreviewer = get(),
+                        executionContextResolver = get(),
+                        providerRunner = get(),
+                    )
+                }
             }
         )
         modules(*appModules)

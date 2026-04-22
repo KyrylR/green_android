@@ -9,16 +9,23 @@ import com.blockstream.compose.extensions.previewWallet
 import com.blockstream.compose.looks.transaction.TransactionLook
 import com.blockstream.compose.navigation.NavData
 import com.blockstream.compose.navigation.NavigateDestinations
+import com.blockstream.compose.navigation.WalletAbiFlowLaunchMode
 import com.blockstream.data.data.DataState
 import com.blockstream.data.data.GreenWallet
 import com.blockstream.data.extensions.ifConnected
 import com.blockstream.data.extensions.launchSafe
 import com.blockstream.data.gdk.data.Transaction
 import com.blockstream.data.gdk.data.toTransaction
+import com.blockstream.data.json.DefaultJson
+import com.blockstream.data.walletabi.walletconnect.WalletAbiWalletConnectManaging
+import com.blockstream.data.walletabi.walletconnect.WalletAbiWalletConnectState
 import com.blockstream.domain.base.Result
 import com.blockstream.domain.meld.GetPendingMeldTransactions
 import com.blockstream.domain.swap.IsSwapAvailableUseCase
 import com.blockstream.domain.swap.IsSwapsEnabledUseCase
+import com.blockstream.domain.walletabi.flow.WalletAbiFlowSnapshotRepository
+import com.blockstream.domain.walletabi.flow.WalletAbiResumeSnapshot
+import com.blockstream.domain.walletabi.request.WalletAbiTxCreateRequest
 import com.blockstream.utils.Loggable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,14 +33,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import lwk.WalletAbiWalletConnectOverlayKind
 import org.jetbrains.compose.resources.getString
 import org.koin.core.component.inject
+
+data class WalletAbiWalletConnectCardLook(
+    val title: String,
+    val subtitle: String?,
+    val body: String,
+    val statusLabel: String,
+)
 
 abstract class TransactViewModelAbstract(
     greenWallet: GreenWallet
@@ -46,6 +63,10 @@ abstract class TransactViewModelAbstract(
     abstract val isSwapAvailable: Boolean
 
     abstract val transactions: StateFlow<DataState<List<TransactionLook>>>
+
+    abstract val pendingWalletAbiResume: StateFlow<WalletAbiResumeSnapshot?>
+    abstract val walletAbiWalletConnectCard: StateFlow<WalletAbiWalletConnectCardLook?>
+    abstract val hasPendingWalletAbiWalletConnectRequest: StateFlow<Boolean>
 
     fun onBuy() {
         postEvent(NavigateDestinations.Buy(greenWallet = greenWallet))
@@ -68,12 +89,37 @@ abstract class TransactViewModelAbstract(
             }
         }
     }
+
+    fun openWalletAbiFlow() {
+        postEvent(
+            NavigateDestinations.WalletAbiFlow(
+                greenWallet = greenWallet,
+                launchMode = WalletAbiFlowLaunchMode.Demo
+            )
+        )
+    }
+
+    fun resumePendingWalletAbiFlow() {
+        postEvent(
+            NavigateDestinations.WalletAbiFlow(
+                greenWallet = greenWallet,
+                launchMode = WalletAbiFlowLaunchMode.Resume
+            )
+        )
+    }
+
+    fun openWalletAbiWalletConnect() {
+        postEvent(NavigateDestinations.WalletAbiWalletConnect(greenWallet = greenWallet))
+    }
+
+    abstract fun handleWalletConnectInput(input: String)
 }
 
 class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(greenWallet = greenWallet) {
 
     private val isSwapAvailableUseCase: IsSwapAvailableUseCase by inject()
     private val getPendingMeldTransactions: GetPendingMeldTransactions by inject()
+    private val snapshotRepository: WalletAbiFlowSnapshotRepository by inject()
     private var refreshJob: Job? = null
 
     override fun segmentation(): HashMap<String, Any> = countly.sessionSegmentation(session = session)
@@ -81,6 +127,27 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
     override val isSwapAvailable: Boolean = session.ifConnected {
         isSwapAvailableUseCase(wallet = greenWallet, session = session)
     } ?: false
+
+    override val pendingWalletAbiResume: StateFlow<WalletAbiResumeSnapshot?> =
+        snapshotRepository.observe(greenWallet.id)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), null)
+
+    private val walletAbiWalletConnectState: StateFlow<WalletAbiWalletConnectState> =
+        walletAbiWalletConnectManager.state(greenWallet.id)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), WalletAbiWalletConnectState())
+
+    override val walletAbiWalletConnectCard: StateFlow<WalletAbiWalletConnectCardLook?> =
+        walletAbiWalletConnectState
+            .map { it.toCardLook() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), null)
+
+    override val hasPendingWalletAbiWalletConnectRequest: StateFlow<Boolean> =
+        walletAbiWalletConnectState
+            .map { state ->
+                state.preparingRequest != null ||
+                    state.uiState.currentOverlay?.kind == WalletAbiWalletConnectOverlayKind.TRANSACTION_APPROVAL
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), false)
 
     private val _meldTransactions: StateFlow<List<Transaction>> = greenWallet.xPubHashId.let {
         combine(
@@ -141,6 +208,22 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
         }
 
         getPendingMeldTransactions()
+        viewModelScope.launch {
+            walletAbiWalletConnectManager.bind(
+                greenWallet = greenWallet,
+                session = session,
+            )
+        }
+
+        sessionManager.pendingUri
+            .filterNotNull()
+            .debounce(50L)
+            .onEach {
+                sessionManager.consumePendingUri(it)?.also { pendingUri ->
+                    handleWalletConnectInput(pendingUri)
+                }
+            }
+            .launchIn(this)
 
         startPeriodicRefresh()
 
@@ -174,6 +257,20 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
         super.onCleared()
     }
 
+    override fun handleWalletConnectInput(input: String) {
+        val pairingInput = input.trim()
+        if (pairingInput.isBlank()) {
+            return
+        }
+
+        postEvent(
+            NavigateDestinations.WalletAbiWalletConnect(
+                greenWallet = greenWallet,
+                pairingUri = pairingInput,
+            )
+        )
+    }
+
     private suspend fun updateNavData(greenWallet: GreenWallet) {
         _navData.value = NavData(
             title = getString(Res.string.id_transact),
@@ -184,7 +281,10 @@ class TransactViewModel(greenWallet: GreenWallet) : TransactViewModelAbstract(gr
     }
 }
 
-class TransactViewModelPreview(val isEmpty: Boolean = false) : TransactViewModelAbstract(greenWallet = previewWallet()) {
+class TransactViewModelPreview(
+    val isEmpty: Boolean = false,
+    pendingWalletAbiResume: WalletAbiResumeSnapshot? = null
+) : TransactViewModelAbstract(greenWallet = previewWallet()) {
 
     override val isSwapAvailable: Boolean = true
 
@@ -207,7 +307,125 @@ class TransactViewModelPreview(val isEmpty: Boolean = false) : TransactViewModel
         )
     )
 
+    override val pendingWalletAbiResume: StateFlow<WalletAbiResumeSnapshot?> =
+        MutableStateFlow(pendingWalletAbiResume)
+
+    override val walletAbiWalletConnectCard: StateFlow<WalletAbiWalletConnectCardLook?> =
+        MutableStateFlow(null)
+
+    override val hasPendingWalletAbiWalletConnectRequest: StateFlow<Boolean> =
+        MutableStateFlow(false)
+
+    override fun handleWalletConnectInput(input: String) = Unit
+
     companion object : Loggable() {
-        fun create(isEmpty: Boolean = false) = TransactViewModelPreview(isEmpty = isEmpty)
+        fun create(
+            isEmpty: Boolean = false,
+            pendingWalletAbiResume: WalletAbiResumeSnapshot? = null
+        ) = TransactViewModelPreview(
+            isEmpty = isEmpty,
+            pendingWalletAbiResume = pendingWalletAbiResume
+        )
     }
+}
+
+private fun WalletAbiWalletConnectState.toCardLook(): WalletAbiWalletConnectCardLook? {
+    val overlay = uiState.currentOverlay
+    if (overlay != null) {
+        return when (overlay.kind) {
+            WalletAbiWalletConnectOverlayKind.CONNECTION_APPROVAL -> {
+                val proposal = overlay.proposal
+                val requestedMethods = listOf(
+                    proposal?.requiredMethods.orEmpty(),
+                    proposal?.optionalMethods.orEmpty(),
+                ).flatten().distinct()
+
+                WalletAbiWalletConnectCardLook(
+                    title = proposal?.name?.takeIf { it.isNotBlank() } ?: "WalletConnect session request",
+                    subtitle = overlay.chainId,
+                    body = buildString {
+                        if (requestedMethods.isNotEmpty()) {
+                            append("Review access to ")
+                            append(requestedMethods.joinToString())
+                            append(".")
+                        } else {
+                            append("Review the WalletConnect session request before pairing.")
+                        }
+                    },
+                    statusLabel = if (overlay.awaitingTransport) "Connecting" else "Review",
+                )
+            }
+
+            WalletAbiWalletConnectOverlayKind.TRANSACTION_APPROVAL -> {
+                val session = uiState.activeSessions.firstOrNull { it.topic == overlay.sessionTopic }
+                val request = parseWalletAbiTxCreateRequest(overlay.requestJson)
+                val outputCount = request?.params?.outputs?.size ?: 1
+                val title = if (outputCount > 1) {
+                    "Wallet ABI split request"
+                } else {
+                    "Wallet ABI transfer request"
+                }
+                WalletAbiWalletConnectCardLook(
+                    title = title,
+                    subtitle = session?.peerName ?: overlay.request?.method,
+                    body = buildString {
+                        append("Request ")
+                        append(request?.requestId ?: overlay.request?.requestId?.toString() ?: "pending")
+                        append(" is ready for review")
+                        if (session?.peerName?.isNotBlank() == true) {
+                            append(" from ")
+                            append(session.peerName)
+                        }
+                        append(".")
+                    },
+                    statusLabel = if (overlay.awaitingTransport) "Sending" else "Review",
+                )
+            }
+        }
+    }
+
+    if (isPairing) {
+        return WalletAbiWalletConnectCardLook(
+            title = "WalletConnect pairing",
+            subtitle = null,
+            body = "Waiting for the paired app to send a session proposal.",
+            statusLabel = "Pairing",
+        )
+    }
+
+    preparingRequest?.let { preparingRequest ->
+        val session = uiState.activeSessions.firstOrNull { it.topic == preparingRequest.topic }
+        return WalletAbiWalletConnectCardLook(
+            title = "Wallet ABI request",
+            subtitle = session?.peerName ?: preparingRequest.method,
+            body = buildString {
+                append("Preparing Wallet ABI review")
+                session?.peerName?.takeIf { it.isNotBlank() }?.let { peerName ->
+                    append(" from ")
+                    append(peerName)
+                }
+                append(".")
+            },
+            statusLabel = "Preparing",
+        )
+    }
+
+    val activeSession = uiState.activeSessions.firstOrNull() ?: return null
+    return WalletAbiWalletConnectCardLook(
+        title = activeSession.peerName?.takeIf { it.isNotBlank() } ?: "WalletConnect connected",
+        subtitle = activeSession.chainId,
+        body = if (uiState.pendingActionCount > 0u) {
+            "Waiting for WalletConnect transport confirmation."
+        } else {
+            "Ready to review Wallet ABI transfer and split requests."
+        },
+        statusLabel = if (uiState.pendingActionCount > 0u) "Syncing" else "Connected",
+    )
+}
+
+private fun parseWalletAbiTxCreateRequest(requestJson: String?): WalletAbiTxCreateRequest? {
+    val payload = requestJson ?: return null
+    return runCatching {
+        DefaultJson.decodeFromString(WalletAbiTxCreateRequest.serializer(), payload)
+    }.getOrNull()
 }

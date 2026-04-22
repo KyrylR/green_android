@@ -11,6 +11,8 @@ buildscript {
     }
 }
 
+extra["appleTargetsEnabled"] = providers.gradleProperty("androidOnly").orNull?.toBoolean() != true
+
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -35,7 +37,11 @@ allprojects {
         maven("https://jitpack.io")
         maven("https://mvn.breez.technology/releases")
         maven("https://zendesk.jfrog.io/zendesk/repo")
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") {
+            content {
+                includeGroupByRegex("org\\.jetbrains(\\..*)?")
+            }
+        }
         maven("https://central.sonatype.com/repository/maven-snapshots/") // LWK Snapshots
     }
 }

@@ -1,7 +1,10 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.kotlinxSerialization)
 }
+
+val appleTargetsEnabled = rootProject.extra["appleTargetsEnabled"] as Boolean
 
 kotlin {
     compilerOptions {
@@ -26,8 +29,10 @@ kotlin {
     }
 
     jvm()
-    iosArm64()
-    iosSimulatorArm64()
+    if (appleTargetsEnabled) {
+        iosArm64()
+        iosSimulatorArm64()
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -38,6 +43,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
 
         androidMain.dependencies {

@@ -17,6 +17,20 @@ import com.blockstream.domain.receive.receiveModule
 import com.blockstream.domain.send.sendModule
 import com.blockstream.domain.swap.swapModule
 import com.blockstream.domain.wallet.walletModule
+import com.blockstream.domain.walletabi.execution.DefaultWalletAbiExecutionRunner
+import com.blockstream.domain.walletabi.execution.DefaultWalletAbiExecutionPlanner
+import com.blockstream.domain.walletabi.execution.DefaultWalletAbiReviewPreviewer
+import com.blockstream.domain.walletabi.execution.WalletAbiExecutionRunner
+import com.blockstream.domain.walletabi.execution.WalletAbiExecutionPlanner
+import com.blockstream.domain.walletabi.execution.WalletAbiReviewPreviewer
+import com.blockstream.domain.walletabi.flow.DefaultWalletAbiFlowStore
+import com.blockstream.domain.walletabi.flow.WalletAbiFlowSnapshotRepository
+import com.blockstream.domain.walletabi.flow.WalletAbiFlowStore
+import com.blockstream.domain.walletabi.provider.WalletAbiExecutionContextResolver
+import com.blockstream.domain.walletabi.provider.WalletAbiExecutionContextResolving
+import com.blockstream.data.walletabi.provider.WalletAbiJadePsetSignerFactory
+import com.blockstream.domain.walletabi.provider.WalletAbiProviderRunner
+import com.blockstream.domain.walletabi.provider.WalletAbiProviderRunning
 import org.koin.dsl.module
 
 val domainModule = module {
@@ -56,5 +70,32 @@ val domainModule = module {
     }
     single {
         GetPromoUseCase(get(), get(), get())
+    }
+    factory<WalletAbiFlowStore> {
+        DefaultWalletAbiFlowStore()
+    }
+    factory<WalletAbiExecutionPlanner> {
+        DefaultWalletAbiExecutionPlanner()
+    }
+    factory<WalletAbiExecutionRunner> {
+        DefaultWalletAbiExecutionRunner()
+    }
+    factory<WalletAbiReviewPreviewer> {
+        DefaultWalletAbiReviewPreviewer(get())
+    }
+    factory<WalletAbiExecutionContextResolving> {
+        WalletAbiExecutionContextResolver()
+    }
+    factory<WalletAbiProviderRunning> {
+        WalletAbiProviderRunner(
+            esploraHttpClient = get(),
+            jadePsetSignerFactory = get(),
+        )
+    }
+    single<WalletAbiJadePsetSignerFactory> {
+        WalletAbiJadePsetSignerFactory.Device
+    }
+    single {
+        WalletAbiFlowSnapshotRepository(get())
     }
 }
