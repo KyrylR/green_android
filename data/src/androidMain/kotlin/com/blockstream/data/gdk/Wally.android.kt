@@ -191,6 +191,37 @@ class AndroidWally : Wally {
 
         return WallyJava.psbt_to_base64(psbt, 0)
     }
+
+    override fun psbtInputDetails(psbt: String): List<PsbtInputDetails> {
+        val parsed = WallyJava.psbt_from_base64(psbt)
+        return try {
+            val unsignedTx = WallyJava.psbt_get_global_tx(parsed)
+            try {
+                (0 until WallyJava.psbt_get_num_inputs(parsed)).map { index ->
+                    val txHash = WallyJava.tx_get_input_txhash(unsignedTx, index.toLong())
+                        .reversedArray()
+                        .toHex()
+                        .lowercase()
+                    val outputIndex = WallyJava.tx_get_input_index(unsignedTx, index.toLong()).toLong() and 0xffffffffL
+                    val sighashType = runCatching {
+                        WallyJava.psbt_get_input_sighash(parsed, index.toLong())
+                    }.getOrNull()
+                        ?.takeUnless { it == 0 }
+                        ?.toLong()
+
+                    PsbtInputDetails(
+                        txHash = txHash,
+                        outputIndex = outputIndex,
+                        sighashType = sighashType
+                    )
+                }
+            } finally {
+                WallyJava.tx_free(unsignedTx)
+            }
+        } finally {
+            WallyJava.psbt_free(parsed)
+        }
+    }
 }
 
 actual fun getWally(): Wally = AndroidWally()

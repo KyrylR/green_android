@@ -1,0 +1,37 @@
+{
+  "library": "libwc_uniffi.so",
+  "component": "WalletConnect Android UniFFI client",
+  "source": {
+    "repository": "git@github.com:BlockstreamResearch/walletconnect-client-poc.git",
+    "revision": "874fc28dbbf4b85d52c38c5cd2a2600cf67bd479",
+    "crate": "wc-uniffi",
+    "buildRecipe": "just wc_uniffi_android_release_all",
+    "localDelta": "wc-transport builds tokio-tungstenite with rustls-tls-webpki-roots for Android relay TLS; wc-uniffi Bitcoin review JSON includes reviewed execution payload fields and clear-signing display fields for app-side request handling; malformed Bitcoin session requests that cannot be converted into reviewed execution payloads return an unapprovable clear-signing display instead of a generic approval prompt; wc-uniffi session proposal, session update, authentication, and active-session review JSON include user-intent display details, warnings, info, and action-specific explanations for Android; wc-uniffi owns session-authenticate CAIP-122 message construction and signed CACAO JSON wrapping while Android supplies the selected account signature; operation errors include source-chain details for app-side diagnostics; wc-bitcoin derivation path serialization preserves the WalletConnect m/ prefix in session properties; wc-bitcoin accepts syntactically valid Bitcoin-family addresses for BIP-122 testnet interop; wc-bitcoin accepts empty signPsbt signInputs so the wallet can select spendable PSBT inputs; wc-bitcoin summarizes signPsbt unsigned transaction inputs, outputs, decoded destinations, OP_RETURN outputs, and fee visibility for native clear-signing review JSON"
+  },
+  "verification": {
+    "gradleTask": ":data:verifyWalletConnectNativeBinaries",
+    "nativeConflictPolicy": "Do not use broad jniLibs pickFirst rules. Only libc++_shared.so is allowlisted for known SDK duplicates; duplicate WalletConnect native libraries must fail the Android packaging step."
+  },
+  "artifacts": [
+    {
+      "abi": "arm64-v8a",
+      "path": "arm64-v8a/libwc_uniffi.so",
+      "sha256": "6a78e1a1aaaffe4867e1266a9e3db8d673663094708c75972371f0aac73ffa16"
+    },
+    {
+      "abi": "armeabi-v7a",
+      "path": "armeabi-v7a/libwc_uniffi.so",
+      "sha256": "1deabf7386428338ae7bd1ea203bb2455739ffb4175604015096b0120cb0304d"
+    },
+    {
+      "abi": "x86",
+      "path": "x86/libwc_uniffi.so",
+      "sha256": "cc5625e21051d02b252b7db71f0a4f522cb6699e9b51f6693a6058c75c6c255a"
+    },
+    {
+      "abi": "x86_64",
+      "path": "x86_64/libwc_uniffi.so",
+      "sha256": "0e6923a89d4725eebfe8f7f4ed350dcdbc3869704510985c799486729b7186cb"
+    }
+  ]
+}

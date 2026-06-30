@@ -29,6 +29,7 @@ import com.blockstream.data.gdk.params.InitConfig
 import com.blockstream.data.gdk.params.Limits
 import com.blockstream.data.gdk.params.LoginCredentialsParams
 import com.blockstream.data.gdk.params.PreviousAddressParams
+import com.blockstream.data.gdk.params.PsbtSignParams
 import com.blockstream.data.gdk.params.ReceiveAddressParams
 import com.blockstream.data.gdk.params.ReconnectHintParams
 import com.blockstream.data.gdk.params.RsaVerifyParams
@@ -285,6 +286,8 @@ class AndroidGdk(printGdkMessages: Boolean, config: InitConfig, logger: Logger) 
         GDK.sign_transaction(session, createTransaction)
 
     override fun psbtFromJson(session: GASession, transaction: JsonElement): GAAuthHandler = GDK.psbt_from_json(session, transaction)
+
+    override fun psbtSign(session: GASession, params: PsbtSignParams): GAAuthHandler = GDK.psbt_sign(session, params)
 
     override fun broadcastTransaction(session: GASession, broadcastTransactionParams: BroadcastTransactionParams): GAAuthHandler =
         GDK.broadcast_transaction(session, broadcastTransactionParams)

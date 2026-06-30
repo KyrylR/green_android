@@ -58,6 +58,8 @@ import com.blockstream.data.managers.BluetoothManager
 import com.blockstream.data.managers.DeviceManager
 import com.blockstream.data.managers.LifecycleManager
 import com.blockstream.data.managers.SettingsManager
+import com.blockstream.data.walletconnect.NoOpWalletConnectManager
+import com.blockstream.data.walletconnect.WalletConnectManager
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.Settings
@@ -243,6 +245,7 @@ fun GreenPreview(content: @Composable () -> Unit) {
                     isDevelopment = true
                 )
             }
+            single<WalletConnectManager> { NoOpWalletConnectManager }
         })
     }
 

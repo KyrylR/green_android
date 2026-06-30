@@ -23,6 +23,8 @@ data class CreateTransactionParams constructor(
     val addressees: List<JsonElement>? = null, // This can also be a BIP21 URI
     @SerialName("fee_rate")
     val feeRate: Long? = null,
+    @SerialName("change_address")
+    val changeAddress: Map<String, JsonElement>? = null,
     @SerialName("private_key")
     val privateKey: String? = null, // sweep
     @SerialName("previous_transaction")

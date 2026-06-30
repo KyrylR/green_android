@@ -138,9 +138,6 @@ android {
         minSdk = libs.versions.androidMinSdk.get().toInt()
     }
 
-    packaging {
-        jniLibs.pickFirsts.add("**/*.so")
-    }
     buildFeatures {
         compose = true
         buildConfig = true

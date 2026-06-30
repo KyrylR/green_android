@@ -6,9 +6,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -18,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -28,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -41,13 +49,24 @@ import blockstream_green.common.generated.resources.id_transact
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowsDownUp
+import com.adamglin.phosphoricons.regular.CurrencyBtc
 import com.adamglin.phosphoricons.regular.Gear
 import com.adamglin.phosphoricons.regular.House
 import com.adamglin.phosphoricons.regular.ShieldCheck
 import com.blockstream.compose.components.GreenTopAppBar
 import com.blockstream.compose.models.MainViewModel
 import com.blockstream.compose.theme.bodyMedium
+import com.blockstream.compose.theme.whiteMedium
 import com.blockstream.compose.utils.HandleSideEffect
+import com.blockstream.compose.walletconnect.walletConnectApprovalTitle
+import com.blockstream.compose.walletconnect.walletConnectChainLabel
+import com.blockstream.compose.walletconnect.walletConnectMethodLabel
+import com.blockstream.compose.walletconnect.walletConnectReviewLabel
+import com.blockstream.compose.walletconnect.walletConnectReviewText
+import com.blockstream.compose.walletconnect.walletConnectReviewValue
+import com.blockstream.compose.walletconnect.walletConnectRiskLabel
+import com.blockstream.data.walletconnect.WalletConnectApproval
+import com.blockstream.data.walletconnect.WalletConnectReviewField
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.reflect.KClass
@@ -100,6 +119,8 @@ fun AppScaffold(
     val navBackStackEntry by navigator.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentBackStack by navigator.currentBackStack.collectAsStateWithLifecycle()
+    val walletConnectApprovals by mainViewModel.walletConnectApprovals.collectAsStateWithLifecycle()
+    val walletConnectLastError by mainViewModel.walletConnectLastError.collectAsStateWithLifecycle()
     var showNavigationBar by mutableStateOf(true)
 
     navigator.addOnDestinationChangedListener { _, destination, _ ->
@@ -226,5 +247,119 @@ fun AppScaffold(
                 }
             }
         }
+    }
+
+    walletConnectApprovals.firstOrNull()?.also { approval ->
+        WalletConnectApprovalDialog(
+            approval = approval,
+            lastError = walletConnectLastError,
+            onApprove = { mainViewModel.approveWalletConnect(approval.id) },
+            onReject = { mainViewModel.rejectWalletConnect(approval.id) }
+        )
+    }
+}
+
+@Composable
+private fun WalletConnectApprovalDialog(
+    approval: WalletConnectApproval,
+    lastError: String?,
+    onApprove: () -> Unit,
+    onReject: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { },
+        icon = {
+            Icon(
+                imageVector = PhosphorIcons.Regular.CurrencyBtc,
+                contentDescription = null
+            )
+        },
+        title = {
+            Text(
+                walletConnectApprovalTitle(
+                    intent = approval.review.intent,
+                    method = approval.review.method,
+                    fallback = approval.review.title
+                )
+            )
+        },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                approval.review.requesterName?.also {
+                    WalletConnectDialogField(label = "App", value = it)
+                }
+                walletConnectChainLabel(approval.review.chainId)?.also {
+                    WalletConnectDialogField(label = "Network", value = it)
+                }
+                walletConnectMethodLabel(approval.review.method)?.also {
+                    WalletConnectDialogField(label = "Action", value = it)
+                }
+                walletConnectRiskLabel(approval.review.verifyRisk)?.also {
+                    WalletConnectDialogField(label = "Verification", value = it)
+                }
+
+                WalletConnectTextSection(title = "Check before approving", values = approval.review.warnings)
+                WalletConnectFieldSection(title = "Request details", fields = approval.review.details)
+                WalletConnectTextSection(title = "What this means", values = approval.review.info)
+
+                if (!approval.review.canApprove) {
+                    WalletConnectTextSection(
+                        title = "Cannot approve",
+                        values = listOfNotNull(approval.review.approveUnavailableReason)
+                    )
+                }
+                lastError?.takeIf { it.isNotBlank() }?.also {
+                    WalletConnectTextSection(title = "Latest error", values = listOf(it))
+                }
+            }
+        },
+        confirmButton = {
+            if (approval.review.canApprove) {
+                TextButton(onClick = onApprove) {
+                    Text("Approve")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onReject) {
+                Text("Reject")
+            }
+        }
+    )
+}
+
+@Composable
+private fun WalletConnectDialogField(label: String, value: String) {
+    Column {
+        Text(label, style = bodyMedium, color = whiteMedium)
+        Text(value, style = bodyMedium)
+    }
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun WalletConnectTextSection(title: String, values: List<String>) {
+    if (values.isEmpty()) return
+
+    Spacer(Modifier.height(12.dp))
+    Text(title, style = bodyMedium)
+    Spacer(Modifier.height(4.dp))
+    values.forEach { value ->
+        Text(walletConnectReviewText(value), style = bodyMedium, color = whiteMedium)
+    }
+}
+
+@Composable
+private fun WalletConnectFieldSection(title: String, fields: List<WalletConnectReviewField>) {
+    if (fields.isEmpty()) return
+
+    Spacer(Modifier.height(12.dp))
+    Text(title, style = bodyMedium)
+    Spacer(Modifier.height(4.dp))
+    fields.forEach { field ->
+        WalletConnectDialogField(
+            label = walletConnectReviewLabel(field.label),
+            value = walletConnectReviewValue(field.label, field.value)
+        )
     }
 }

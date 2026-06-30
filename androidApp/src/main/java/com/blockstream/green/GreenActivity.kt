@@ -198,13 +198,13 @@ class GreenActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        logger.d { "onNewIntent called with: ${intent.data}" }
+        logger.d { "onNewIntent called with: ${intent.redactedDataForLog()}" }
         setIntent(intent) // Important: Update the activity's intent
         handleIntent(intent)
     }
 
     private fun handleIntent(intent: Intent?) {
-        logger.d { "handleIntent called with action: ${intent?.action}, data: ${intent?.data}" }
+        logger.d { "handleIntent called with action: ${intent?.action}, data: ${intent.redactedDataForLog()}" }
 
         // Handle blockstream:// scheme with DeepLinkHandler
         if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "blockstream") {
@@ -218,6 +218,8 @@ class GreenActivity : AppCompatActivity() {
                 ?.let { it.contains("/jade/setup") || it.contains("/j/s") } == true
         ) {
             mainViewModel.postEvent(Events.NavigateTo(NavigateDestinations.DeviceList(isJade = true)))
+        } else if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme.equals("wc", ignoreCase = true)) {
+            sessionManager.pendingWalletConnectUri.value = intent.data.toString()
         } else if (intent?.action == OPEN_WALLET) {
 
             intent.getStringExtra(WALLET)?.let { GreenJson.json.decodeFromString<GreenWallet>(it) }?.let { wallet ->
@@ -234,6 +236,16 @@ class GreenActivity : AppCompatActivity() {
             intent?.data?.let {
                 sessionManager.pendingUri.value = it.toString()
             }
+        }
+    }
+
+    private fun Intent?.redactedDataForLog(): String? {
+        val uri = this?.data ?: return null
+        val data = uri.toString()
+        if (!uri.scheme.equals("wc", ignoreCase = true)) return data
+
+        return Regex("([?&]symKey=)[^&]+").replace(data) {
+            "${it.groupValues[1]}<redacted>"
         }
     }
 

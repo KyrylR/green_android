@@ -94,6 +94,7 @@ import com.blockstream.data.gdk.params.GetAssetsParams
 import com.blockstream.data.gdk.params.Limits
 import com.blockstream.data.gdk.params.LoginCredentialsParams
 import com.blockstream.data.gdk.params.PreviousAddressParams
+import com.blockstream.data.gdk.params.PsbtSignParams
 import com.blockstream.data.gdk.params.ReceiveAddressParams
 import com.blockstream.data.gdk.params.ReconnectHintParams
 import com.blockstream.data.gdk.params.RsaVerifyParams
@@ -3085,11 +3086,19 @@ class GdkSession constructor(
             gdk.psbtFromJson(gdkSession(network), transaction = transaction.jsonElement!!)
         ).result<Psbt>()
 
+    suspend fun psbtSign(network: Network, params: PsbtSignParams): Psbt =
+        authHandler(
+            network,
+            gdk.psbtSign(gdkSession(network), params = params)
+        ).result<Psbt>()
+
     suspend fun psbtIsBase64(psbt: String): Boolean = wally.psbtIsBase64(psbt)
 
     suspend fun psbtIsBinary(psbt: ByteArray): Boolean = wally.psbtIsBinary(psbt)
 
     suspend fun psbtToV0(psbt: String): String = wally.psbtToV0(psbt)
+
+    suspend fun psbtInputDetails(psbt: String): List<PsbtInputDetails> = wally.psbtInputDetails(psbt)
 
     suspend fun broadcastTransaction(
         network: Network,
@@ -3558,4 +3567,3 @@ class GdkSession constructor(
         )
     }
 }
-

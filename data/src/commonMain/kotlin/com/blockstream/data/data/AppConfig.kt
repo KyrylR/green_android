@@ -1,7 +1,5 @@
 package com.blockstream.data.data
 
-import com.blockstream.utils.Loggable
-
 typealias AppKeysString = String
 
 data class AppConfig(
@@ -11,11 +9,12 @@ data class AppConfig(
     val greenlightKey: String? = null,
     val greenlightCert: String? = null,
     val zendeskClientId: String? = null,
+    val reownProjectId: String? = null,
     val analyticsFeatureEnabled: Boolean = true,
     val lightningFeatureEnabled: Boolean = true,
     val storeRateEnabled: Boolean = false
 ) {
-    companion object : Loggable() {
+    companion object {
         fun default(
             isDebug: Boolean,
             filesDir: String,
@@ -27,10 +26,6 @@ data class AppConfig(
         ): AppConfig {
             val appKeys: AppKeys? = appKeysString?.takeIf { it.isNotBlank() }?.let { AppKeys.fromText(it) }
 
-            if (lightningFeatureEnabled && (appKeys?.greenlightCert == null || appKeys.greenlightKey == null)) {
-                logger.i { "Lightning Feature turned off" }
-            }
-
             return AppConfig(
                 isDebug = isDebug,
                 filesDir = filesDir,
@@ -38,6 +33,7 @@ data class AppConfig(
                 greenlightKey = appKeys?.greenlightKey,
                 greenlightCert = appKeys?.greenlightCert,
                 zendeskClientId = appKeys?.zendeskClientId,
+                reownProjectId = appKeys?.reownProjectId,
                 analyticsFeatureEnabled = analyticsFeatureEnabled,
                 lightningFeatureEnabled = lightningFeatureEnabled && appKeys?.greenlightCert != null,
                 storeRateEnabled = storeRateEnabled

@@ -19,6 +19,9 @@ app/src/main/jniLibs
 app/libwally-core
 app/gdk
 *.so
+!data/src/androidMain/jniLibs/
+!data/src/androidMain/jniLibs/**/
+!data/src/androidMain/jniLibs/**/libwc_uniffi.so
 GreenBits.iml
 app/app.iml
 gdk/src/main/java/com/blockstream/green_gdk/GDK.java

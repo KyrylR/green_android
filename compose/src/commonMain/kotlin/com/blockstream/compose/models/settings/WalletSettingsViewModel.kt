@@ -390,6 +390,9 @@ class WalletSettingsViewModel(
                                     && !greenWallet.isWatchOnly && greenWallet.deviceIdentifiers?.any { it.model?.supportsLightningMnemonicDerivation == true } != false
 
                         },
+                    WalletSetting.WalletConnect.takeIf {
+                        appConfig.reownProjectId?.isNotBlank() == true
+                    },
                     WalletSetting.Swaps.takeIf {
                         isSwapAvailableUseCase.invoke(wallet = greenWallet, session = session) && greenWallet.isHardware
                     }

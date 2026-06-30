@@ -724,6 +724,18 @@ fun WalletSettingsScreen(
                         )
                     }
 
+                    WalletSetting.WalletConnect -> {
+                        Setting(
+                            title = "WalletConnect",
+                            subtitle = "Connected apps and session permissions",
+                            imageVector = PhosphorIcons.Regular.CaretRight,
+                            modifier = Modifier.clickable {
+                                viewModel.postEvent(NavigateDestinations.WalletConnectSession(greenWallet = viewModel.greenWallet))
+                            },
+                            testTag = "walletconnect_session"
+                        )
+                    }
+
                     WalletSetting.GetSupport -> {
                         Setting(
                             title = stringResource(Res.string.id_get_support),
@@ -937,4 +949,3 @@ fun Setting(
         }
     }
 }
-

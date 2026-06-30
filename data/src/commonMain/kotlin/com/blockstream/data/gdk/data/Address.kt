@@ -18,6 +18,8 @@ data class Address constructor(
     val txCount: Long? = null,
     @SerialName("script")
     val script: String? = null,
+    @SerialName("scriptpubkey")
+    val scriptPubkey: String? = null,
     @SerialName("subaccount")
     val subaccount: Int? = null,
     @SerialName("subtype")

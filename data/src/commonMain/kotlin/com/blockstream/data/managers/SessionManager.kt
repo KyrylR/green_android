@@ -105,6 +105,7 @@ class SessionManager constructor(
     private var timeoutTimers = mutableListOf<Timer>()
 
     val pendingUri: MutableStateFlow<String?> = MutableStateFlow(null)
+    val pendingWalletConnectUri: MutableStateFlow<String?> = MutableStateFlow(null)
 
     private val _connectionChangeEvent = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST).also {
         // Set initial value

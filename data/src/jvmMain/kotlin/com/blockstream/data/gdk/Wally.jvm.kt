@@ -78,5 +78,9 @@ actual fun getWally(): Wally {
             TODO("Not yet implemented")
         }
 
+        override fun psbtInputDetails(psbt: String): List<PsbtInputDetails> {
+            TODO("Not yet implemented")
+        }
+
     }
 }

@@ -38,6 +38,15 @@ if (localPropertiesFile.exists()) {
 
 val appKeys = rootProject.file("app_keys.txt").takeIf { it.exists() }?.readText() ?: ""
 
+fun String.asBuildConfigStringLiteral(): String {
+    return "\"" +
+        replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r") +
+        "\""
+}
+
 android {
     namespace = "com.blockstream.green"
     compileSdk = libs.versions.androidCompileSdk.get().toInt()
@@ -80,8 +89,8 @@ android {
 
             // Development PIN code from local.properties
             val devPinCode = localProperties.getProperty("DEV_PIN_CODE") ?: ""
-            buildConfigField("String", "DEV_PIN_CODE", """"$devPinCode"""")
-            buildConfigField("String", "APP_KEYS", """"$appKeys"""")
+            buildConfigField("String", "DEV_PIN_CODE", devPinCode.asBuildConfigStringLiteral())
+            buildConfigField("String", "APP_KEYS", appKeys.asBuildConfigStringLiteral())
         }
 
         create("productionGoogle") {
@@ -96,7 +105,7 @@ android {
 
             // No development PIN for production
             buildConfigField("String", "DEV_PIN_CODE", "null")
-            buildConfigField("String", "APP_KEYS", """"$appKeys"""")
+            buildConfigField("String", "APP_KEYS", appKeys.asBuildConfigStringLiteral())
 
             ndk {
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
@@ -116,7 +125,7 @@ android {
 
             // No development PIN for production
             buildConfigField("String", "DEV_PIN_CODE", "null")
-            buildConfigField("String", "APP_KEYS", """"$appKeys"""")
+            buildConfigField("String", "APP_KEYS", appKeys.asBuildConfigStringLiteral())
 
             ndk {
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
@@ -150,7 +159,14 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
     packaging {
-        jniLibs.pickFirsts.add("**/*.so")
+        jniLibs.pickFirsts.addAll(
+            listOf(
+                "lib/arm64-v8a/libc++_shared.so",
+                "lib/armeabi-v7a/libc++_shared.so",
+                "lib/x86/libc++_shared.so",
+                "lib/x86_64/libc++_shared.so"
+            )
+        )
     }
     testOptions {
         unitTests {

@@ -89,6 +89,7 @@ import com.blockstream.compose.models.settings.AppSettingsViewModel
 import com.blockstream.compose.models.settings.SwapsSettingsViewModel
 import com.blockstream.compose.models.settings.TwoFactorAuthenticationViewModel
 import com.blockstream.compose.models.settings.TwoFactorSetupViewModel
+import com.blockstream.compose.models.settings.WalletConnectSessionViewModel
 import com.blockstream.compose.models.settings.WalletSettingsSection
 import com.blockstream.compose.models.settings.WalletSettingsViewModel
 import com.blockstream.compose.models.settings.WatchOnlyCredentialsSettingsViewModel
@@ -173,6 +174,7 @@ import com.blockstream.compose.screens.settings.ChangePinScreen
 import com.blockstream.compose.screens.settings.SwapsSettingsScreen
 import com.blockstream.compose.screens.settings.TwoFactorAuthenticationScreen
 import com.blockstream.compose.screens.settings.TwoFactorSetupScreen
+import com.blockstream.compose.screens.settings.WalletConnectSessionScreen
 import com.blockstream.compose.screens.settings.WalletSettingsScreen
 import com.blockstream.compose.screens.settings.WatchOnlyScreen
 import com.blockstream.compose.screens.support.SupportScreen
@@ -471,6 +473,14 @@ fun Router(
                 val args = it.toRoute<NavigateDestinations.SwapsSettings>()
                 SwapsSettingsScreen(viewModel {
                     SwapsSettingsViewModel(
+                        greenWallet = args.greenWallet
+                    )
+                })
+            }
+            appComposable<NavigateDestinations.WalletConnectSession> {
+                val args = it.toRoute<NavigateDestinations.WalletConnectSession>()
+                WalletConnectSessionScreen(viewModel {
+                    WalletConnectSessionViewModel(
                         greenWallet = args.greenWallet
                     )
                 })

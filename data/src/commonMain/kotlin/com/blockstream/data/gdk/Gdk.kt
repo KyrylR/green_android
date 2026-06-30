@@ -28,6 +28,7 @@ import com.blockstream.data.gdk.params.InitConfig
 import com.blockstream.data.gdk.params.Limits
 import com.blockstream.data.gdk.params.LoginCredentialsParams
 import com.blockstream.data.gdk.params.PreviousAddressParams
+import com.blockstream.data.gdk.params.PsbtSignParams
 import com.blockstream.data.gdk.params.ReceiveAddressParams
 import com.blockstream.data.gdk.params.ReconnectHintParams
 import com.blockstream.data.gdk.params.RsaVerifyParams
@@ -230,6 +231,9 @@ interface GdkBinding {
 
     @Throws(Exception::class)
     fun psbtFromJson(session: GASession, transaction: JsonElement): GAAuthHandler
+
+    @Throws(Exception::class)
+    fun psbtSign(session: GASession, params: PsbtSignParams): GAAuthHandler
 
     @Throws(Exception::class)
     fun broadcastTransaction(session: GASession, broadcastTransactionParams: BroadcastTransactionParams): GAAuthHandler

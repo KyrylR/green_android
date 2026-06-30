@@ -43,10 +43,18 @@ interface Wally {
 
     fun psbtToV0(psbt: String): String
 
+    fun psbtInputDetails(psbt: String): List<PsbtInputDetails>
+
     companion object {
         const val BIP39_WORD_LIST_LANG = "en"
     }
 }
+
+data class PsbtInputDetails(
+    val txHash: String,
+    val outputIndex: Long,
+    val sighashType: Long?
+)
 
 private var _bip39WordList: List<String>? = null
 fun Wally.getBip39WordList(): List<String> {

@@ -19,6 +19,7 @@ sealed class WalletSetting {
     data object ChangePin : WalletSetting()
     data class Lightning(val enabled: Boolean) : WalletSetting()
     data object Swaps : WalletSetting()
+    data object WalletConnect : WalletSetting()
     data class LoginWithBiometrics(val enabled: Boolean, val canEnable: Boolean) : WalletSetting()
     data object TwoFactorAuthentication : WalletSetting()
     data class PgpKey(val enabled: Boolean) : WalletSetting()

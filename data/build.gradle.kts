@@ -1,3 +1,5 @@
+import java.io.File
+import java.security.MessageDigest
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
@@ -6,6 +8,74 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.app.cash.sqldelight)
     alias(libs.plugins.nativeCocoapods)
+}
+
+val walletConnectNativeChecksums = mapOf(
+    "arm64-v8a" to "6a78e1a1aaaffe4867e1266a9e3db8d673663094708c75972371f0aac73ffa16",
+    "armeabi-v7a" to "1deabf7386428338ae7bd1ea203bb2455739ffb4175604015096b0120cb0304d",
+    "x86" to "cc5625e21051d02b252b7db71f0a4f522cb6699e9b51f6693a6058c75c6c255a",
+    "x86_64" to "0e6923a89d4725eebfe8f7f4ed350dcdbc3869704510985c799486729b7186cb",
+)
+
+fun sha256Hex(file: File): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { input ->
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val bytesRead = input.read(buffer)
+            if (bytesRead < 0) break
+            digest.update(buffer, 0, bytesRead)
+        }
+    }
+    return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+}
+
+val verifyWalletConnectNativeBinaries by tasks.registering {
+    group = "verification"
+    description = "Verifies pinned WalletConnect native library provenance and checksums."
+
+    inputs.file(layout.projectDirectory.file("src/androidMain/jniLibs/wc_uniffi.provenance.json"))
+    walletConnectNativeChecksums.keys.forEach { abi ->
+        inputs.file(layout.projectDirectory.file("src/androidMain/jniLibs/$abi/libwc_uniffi.so"))
+    }
+
+    doLast {
+        val jniLibsDir = layout.projectDirectory.dir("src/androidMain/jniLibs").asFile
+        val expectedFiles = walletConnectNativeChecksums.mapKeys { (abi, _) ->
+            jniLibsDir.resolve("$abi/libwc_uniffi.so").canonicalFile
+        }
+
+        expectedFiles.forEach { (library, expectedSha256) ->
+            check(library.isFile) { "Missing WalletConnect native library: ${library.path}" }
+
+            val actualSha256 = sha256Hex(library)
+            check(actualSha256 == expectedSha256) {
+                "WalletConnect native library checksum mismatch for ${library.path}: " +
+                    "expected $expectedSha256, got $actualSha256"
+            }
+        }
+
+        val unexpectedLibraries = jniLibsDir.walkTopDown()
+            .filter { it.isFile && it.name == "libwc_uniffi.so" }
+            .map { it.canonicalFile }
+            .filterNot { it in expectedFiles.keys }
+            .toList()
+
+        check(unexpectedLibraries.isEmpty()) {
+            "Unpinned WalletConnect native libraries found: " +
+                unexpectedLibraries.joinToString { it.path }
+        }
+    }
+}
+
+tasks.configureEach {
+    if (
+        name == "check" ||
+        name == "preBuild" ||
+        (name.startsWith("preAndroid") && name.endsWith("Build"))
+    ) {
+        dependsOn(verifyWalletConnectNativeBinaries)
+    }
 }
 
 sqldelight {
@@ -180,7 +250,7 @@ kotlin {
             /**  --- Breez FDroid ----------------------------------------------------------------------- */
             // Temp fix for FDroid breez dependencies
             // api(libs.breez.sdk.android.get().toString()) { exclude(group = "net.java.dev.jna", module = "jna") }
-            // implementation("${libs.jna.get()}@aar")
+            implementation("${libs.jna.get()}@aar")
             /** ----------------------------------------------------------------------------------------- */
         }
 

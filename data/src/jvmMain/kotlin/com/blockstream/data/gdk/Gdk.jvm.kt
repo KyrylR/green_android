@@ -27,6 +27,7 @@ import com.blockstream.data.gdk.params.InitConfig
 import com.blockstream.data.gdk.params.Limits
 import com.blockstream.data.gdk.params.LoginCredentialsParams
 import com.blockstream.data.gdk.params.PreviousAddressParams
+import com.blockstream.data.gdk.params.PsbtSignParams
 import com.blockstream.data.gdk.params.ReceiveAddressParams
 import com.blockstream.data.gdk.params.ReconnectHintParams
 import com.blockstream.data.gdk.params.RsaVerifyParams
@@ -283,6 +284,10 @@ actual fun getGdkBinding(
         }
 
         override fun psbtFromJson(session: GASession, transaction: JsonElement): GAAuthHandler {
+            TODO("Not yet implemented")
+        }
+
+        override fun psbtSign(session: GASession, params: PsbtSignParams): GAAuthHandler {
             TODO("Not yet implemented")
         }
 

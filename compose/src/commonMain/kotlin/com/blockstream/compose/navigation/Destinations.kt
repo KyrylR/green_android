@@ -108,6 +108,11 @@ sealed class NavigateDestinations : NavigateDestination() {
     ) : NavigateDestination()
 
     @Serializable
+    data class WalletConnectSession(
+        val greenWallet: GreenWallet
+    ) : NavigateDestination()
+
+    @Serializable
     data class EnterRecoveryPhrase(val setupArgs: SetupArgs) : NavigateDestination()
 
     @Serializable

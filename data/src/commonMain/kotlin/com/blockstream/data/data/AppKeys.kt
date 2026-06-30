@@ -15,13 +15,21 @@ data class AppKeys(
     val greenlightCert: String? = null,
     @SerialName("zendesk_client_id")
     val zendeskClientId: String? = null,
+    @SerialName("reown_project_id")
+    val reownProjectId: String? = null,
 ) : GreenJson<AppKeys>() {
     override fun kSerializer() = serializer()
 
     companion object {
         fun fromText(text: String): AppKeys? = text.takeIf { it.isNotBlank() }?.let {
             try {
-                json.decodeFromString(Base64.decode(it).commonToUtf8String())
+                val trimmed = it.trim()
+                val jsonText = if (trimmed.startsWith("{")) {
+                    trimmed
+                } else {
+                    Base64.decode(trimmed).commonToUtf8String()
+                }
+                json.decodeFromString(jsonText)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null

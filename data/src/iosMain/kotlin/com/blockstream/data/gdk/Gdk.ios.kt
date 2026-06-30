@@ -27,6 +27,7 @@ import com.blockstream.data.gdk.params.InitConfig
 import com.blockstream.data.gdk.params.Limits
 import com.blockstream.data.gdk.params.LoginCredentialsParams
 import com.blockstream.data.gdk.params.PreviousAddressParams
+import com.blockstream.data.gdk.params.PsbtSignParams
 import com.blockstream.data.gdk.params.ReceiveAddressParams
 import com.blockstream.data.gdk.params.ReconnectHintParams
 import com.blockstream.data.gdk.params.RsaVerifyParams
@@ -94,6 +95,7 @@ import gdk.GA_http_request
 import gdk.GA_init
 import gdk.GA_login_user
 import gdk.GA_psbt_from_json
+import gdk.GA_psbt_sign
 import gdk.GA_reconnect_hint
 import gdk.GA_refresh_assets
 import gdk.GA_register_network
@@ -881,6 +883,19 @@ class IOSGdkBinding constructor(private val config: InitConfig, logger: Logger) 
                 GA_psbt_from_json(
                     session = session.asGASession(),
                     details = transaction.toGaJson(this),
+                    call = gaAuthHandler.ptr
+                ).okOrThrow(gaAuthHandler)
+            }
+        }
+    }
+
+    @Throws(Exception::class)
+    override fun psbtSign(session: GASession, params: PsbtSignParams): GAAuthHandler {
+        return memScoped {
+            gaAuthHandler().let { gaAuthHandler ->
+                GA_psbt_sign(
+                    session = session.asGASession(),
+                    details = params.toGaJson(this),
                     call = gaAuthHandler.ptr
                 ).okOrThrow(gaAuthHandler)
             }

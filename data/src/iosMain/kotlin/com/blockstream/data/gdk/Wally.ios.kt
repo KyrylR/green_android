@@ -352,7 +352,19 @@ class IOSWally : Wally {
         }
     }
 
-    override fun psbtBase64Verify(psbt: String): Boolean {
+    override fun psbtIsBase64(psbt: String): Boolean {
+        TODO()
+    }
+
+    override fun psbtIsBinary(psbt: ByteArray): Boolean {
+        TODO()
+    }
+
+    override fun psbtToV0(psbt: String): String {
+        TODO()
+    }
+
+    override fun psbtInputDetails(psbt: String): List<PsbtInputDetails> {
         TODO()
     }
 }

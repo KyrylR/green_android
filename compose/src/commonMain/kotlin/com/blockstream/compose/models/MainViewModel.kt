@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.blockstream.data.data.GreenWallet
 import com.blockstream.data.interfaces.JadeHttpRequestUrlValidator
 import com.blockstream.data.managers.LifecycleManager
+import com.blockstream.data.walletconnect.WalletConnectManager
 import com.blockstream.compose.events.Event
 import com.blockstream.compose.navigation.NavigateDestinations
 import com.blockstream.compose.navigation.NavigateToWallet
@@ -15,8 +16,11 @@ import org.koin.core.component.inject
 class MainViewModel : GreenViewModel(), JadeHttpRequestUrlValidator {
     private val lifecycleManager: LifecycleManager by inject()
     private val navigateToWallet: NavigateToWallet by inject()
+    private val walletConnectManager: WalletConnectManager by inject()
 
     val lockScreen = lifecycleManager.isLocked
+    val walletConnectApprovals = walletConnectManager.pendingApprovals
+    val walletConnectLastError = walletConnectManager.lastError
 
     private var unsafeUrls: List<String>? = null
     private var unsafeUrlWarningEmitter: CompletableDeferred<Boolean>? = null
@@ -29,6 +33,7 @@ class MainViewModel : GreenViewModel(), JadeHttpRequestUrlValidator {
 
     init {
         sessionManager.httpRequestUrlValidator = this
+        walletConnectManager.start()
 
         viewModelScope.launch {
             if (settingsManager.isV5Upgraded()) {
@@ -66,6 +71,14 @@ class MainViewModel : GreenViewModel(), JadeHttpRequestUrlValidator {
 
     fun unlock() {
         lifecycleManager.unlock()
+    }
+
+    fun approveWalletConnect(approvalId: String) {
+        walletConnectManager.approve(approvalId)
+    }
+
+    fun rejectWalletConnect(approvalId: String) {
+        walletConnectManager.reject(approvalId)
     }
 
     override suspend fun unsafeUrlWarning(urls: List<String>): Boolean =
